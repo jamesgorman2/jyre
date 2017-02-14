@@ -1,4 +1,4 @@
-<class name = "zre_msg" signature = "1" title = "work with ZRE messages">
+<class name = "zre" signature = "1" title = "work with ZRE messages">
 This is the ZRE protocol raw version.
 <include filename = "license.xml" />
 
@@ -11,7 +11,7 @@ This is the ZRE protocol raw version.
 </header>
 
 <message name = "HELLO" id = "1">
-    <field name = "ipaddress" type = "string" />
+    <field name = "ip-address" type = "string" />
     <field name = "mailbox" type = "number" size = "2" />
     <field name = "groups" type = "strings" />
     <field name = "status" type = "number" size = "1" />

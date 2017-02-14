@@ -1,1 +1,1 @@
-gsl -q -script:codec_java -package:zyre zre_msg.xml zre_log_msg.xml
+gsl -q -script:zmq_socket -package:org/jyre -author:$USER zre.xml zre_log.xml
