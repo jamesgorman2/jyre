@@ -1,6 +1,7 @@
 package org.jyre;
 
 import org.zeromq.api.Context;
+import org.zeromq.api.Message;
 import org.zeromq.api.Socket;
 import org.zeromq.api.SocketType;
 
@@ -67,8 +68,8 @@ class ZrePeer {
      */
     public void connect(String replyTo, String endpoint) {
         Socket socket = context.buildSocket(SocketType.DEALER)
-            .withIdentity(replyTo.getBytes())
-            .withSendHighWatermark(1000000)
+            .withIdentity(replyTo.getBytes(Message.CHARSET))
+            .withSendHighWatermark(ZreConstants.PEER_HWM)
             .withSendTimeout(0)
             .connect(endpoint);
         this.socket = new ZreSocket(socket);
@@ -162,7 +163,6 @@ class ZrePeer {
      * Set state to READY.
      */
     public void onReady() {
-//        assert (state == State.CONNECTED);
         state = State.READY;
     }
 

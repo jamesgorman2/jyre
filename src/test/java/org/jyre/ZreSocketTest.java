@@ -31,11 +31,11 @@ public class ZreSocketTest {
         
         HelloMessage message = new HelloMessage();
         message.setSequence(123);
-        message.setIpAddress("Life is short but Now lasts for ever");
-        message.setMailbox(123);
+        message.setEndpoint("Life is short but Now lasts for ever");
         message.addGroup("Name: Brutus");
         message.addGroup("Age: 43");
         message.setStatus(123);
+        message.setName("Life is short but Now lasts for ever");
         message.putHeader("Name", "Brutus");
         message.putHeader("Age", 43);
         
@@ -43,12 +43,12 @@ public class ZreSocketTest {
         assertEquals(ZreSocket.MessageType.HELLO, in.receive());
         message = in.getHello();
         assertEquals(message.getSequence(), Integer.valueOf(123));
-        assertEquals(message.getIpAddress(), "Life is short but Now lasts for ever");
-        assertEquals(message.getMailbox(), Integer.valueOf(123));
+        assertEquals(message.getEndpoint(), "Life is short but Now lasts for ever");
         assertEquals(message.getGroups().size(), 2);
         assertEquals(message.getGroups().get(0), "Name: Brutus");
         assertEquals(message.getGroups().get(1), "Age: 43");
         assertEquals(message.getStatus(), Integer.valueOf(123));
+        assertEquals(message.getName(), "Life is short but Now lasts for ever");
         assertEquals(message.getHeaders().size(), 2);
         assertEquals(message.getHeader("Name", "?"), "Brutus");
         assertEquals(message.getHeader("Age", 0), 43);

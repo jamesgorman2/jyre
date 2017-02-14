@@ -25,17 +25,13 @@
  */
 package org.jyre;
 
-import java.util.*;
-
-import org.zeromq.api.*;
-import org.zeromq.api.Message.Frame;
-
 /**
  * JoinMessage class.
  */
 public class JoinMessage {
     public static final ZreSocket.MessageType MESSAGE_TYPE = ZreSocket.MessageType.JOIN;
 
+    protected Integer version;
     protected Integer sequence;
     protected String group;
     protected Integer status;

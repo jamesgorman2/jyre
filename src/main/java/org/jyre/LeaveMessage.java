@@ -25,17 +25,13 @@
  */
 package org.jyre;
 
-import java.util.*;
-
-import org.zeromq.api.*;
-import org.zeromq.api.Message.Frame;
-
 /**
  * LeaveMessage class.
  */
 public class LeaveMessage {
     public static final ZreSocket.MessageType MESSAGE_TYPE = ZreSocket.MessageType.LEAVE;
 
+    protected Integer version;
     protected Integer sequence;
     protected String group;
     protected Integer status;

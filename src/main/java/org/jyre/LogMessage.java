@@ -25,11 +25,6 @@
  */
 package org.jyre;
 
-import java.util.*;
-
-import org.zeromq.api.*;
-import org.zeromq.api.Message.Frame;
-
 /**
  * LogMessage class.
  */

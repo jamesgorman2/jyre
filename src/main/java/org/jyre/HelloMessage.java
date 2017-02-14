@@ -25,10 +25,10 @@
  */
 package org.jyre;
 
-import java.util.*;
-
-import org.zeromq.api.*;
-import org.zeromq.api.Message.Frame;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 /**
  * HelloMessage class.
@@ -36,11 +36,12 @@ import org.zeromq.api.Message.Frame;
 public class HelloMessage {
     public static final ZreSocket.MessageType MESSAGE_TYPE = ZreSocket.MessageType.HELLO;
 
+    protected Integer version;
     protected Integer sequence;
-    protected String ipAddress;
-    protected Integer mailbox;
+    protected String endpoint;
     protected List<String> groups;
     protected Integer status;
+    protected String name;
     protected Map<String, String> headers;
 
     /**
@@ -73,60 +74,31 @@ public class HelloMessage {
     }
 
     /**
-     * Get the ipAddress field.
+     * Get the endpoint field.
      * 
-     * @return The ipAddress field
+     * @return The endpoint field
      */
-    public String getIpAddress() {
-        return ipAddress;
+    public String getEndpoint() {
+        return endpoint;
     }
 
     /**
-     * Set the ipAddress field.
+     * Set the endpoint field.
      * 
-     * @param ipAddress The ipAddress field
+     * @param endpoint The endpoint field
      */
-    public void setIpAddress(String ipAddress) {
-        this.ipAddress = ipAddress;
+    public void setEndpoint(String endpoint) {
+        this.endpoint = endpoint;
     }
 
     /**
-     * Set the ipAddress field.
+     * Set the endpoint field.
      *
-     * @param ipAddress The ipAddress field
+     * @param endpoint The endpoint field
      * @return The HelloMessage, for method chaining
      */
-    public HelloMessage withIpAddress(String ipAddress) {
-        this.ipAddress = ipAddress;
-        return this;
-    }
-
-    /**
-     * Get the mailbox field.
-     * 
-     * @return The mailbox field
-     */
-    public Integer getMailbox() {
-        return mailbox;
-    }
-
-    /**
-     * Set the mailbox field.
-     * 
-     * @param mailbox The mailbox field
-     */
-    public void setMailbox(Integer mailbox) {
-        this.mailbox = mailbox;
-    }
-
-    /**
-     * Set the mailbox field.
-     *
-     * @param mailbox The mailbox field
-     * @return The HelloMessage, for method chaining
-     */
-    public HelloMessage withMailbox(Integer mailbox) {
-        this.mailbox = mailbox;
+    public HelloMessage withEndpoint(String endpoint) {
+        this.endpoint = endpoint;
         return this;
     }
 
@@ -208,6 +180,35 @@ public class HelloMessage {
      */
     public HelloMessage withStatus(Integer status) {
         this.status = status;
+        return this;
+    }
+
+    /**
+     * Get the name field.
+     * 
+     * @return The name field
+     */
+    public String getName() {
+        return name;
+    }
+
+    /**
+     * Set the name field.
+     * 
+     * @param name The name field
+     */
+    public void setName(String name) {
+        this.name = name;
+    }
+
+    /**
+     * Set the name field.
+     *
+     * @param name The name field
+     * @return The HelloMessage, for method chaining
+     */
+    public HelloMessage withName(String name) {
+        this.name = name;
         return this;
     }
 

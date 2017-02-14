@@ -25,9 +25,7 @@
  */
 package org.jyre;
 
-import java.util.*;
-
-import org.zeromq.api.*;
+import org.zeromq.api.Message;
 import org.zeromq.api.Message.Frame;
 
 /**
@@ -36,6 +34,7 @@ import org.zeromq.api.Message.Frame;
 public class ShoutMessage {
     public static final ZreSocket.MessageType MESSAGE_TYPE = ZreSocket.MessageType.SHOUT;
 
+    protected Integer version;
     protected Integer sequence;
     protected String group;
     protected Frame content = Message.EMPTY_FRAME;
@@ -108,22 +107,22 @@ public class ShoutMessage {
     }
 
     /**
-     * Set the content field, and takes ownership of supplied frame.
+     * Set the content field, and take ownership of supplied frame.
      *
      * @param frame The new content frame
      */
     public void setContent(Frame frame) {
-        content = frame;
+        this.content = frame;
     }
 
     /**
-     * Set the content field, and takes ownership of supplied frame.
+     * Set the content field, and take ownership of supplied frame.
      *
      * @param frame The new content frame
      * @return The ShoutMessage, for method chaining
      */
     public ShoutMessage withContent(Frame frame) {
-        content = frame;
+        this.content = frame;
         return this;
     }
 }

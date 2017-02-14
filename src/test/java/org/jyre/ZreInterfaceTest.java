@@ -4,7 +4,6 @@ import org.junit.Test;
 import org.zeromq.api.Message;
 
 import static org.hamcrest.CoreMatchers.is;
-import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertThat;
 
 public class ZreInterfaceTest {
@@ -223,7 +222,14 @@ public class ZreInterfaceTest {
 
         ping.join();
 
-        // will take EXPIRED_PERIOD milliseconds
+        // will take PEER_EVASIVE milliseconds
+        incoming = inf.receive();
+
+        event = incoming.popString();
+        assertThat(event, is("EVASIVE"));
+        assertThat(incoming.popString(), is(peer));
+
+        // will take PEER_EXPIRED milliseconds
         incoming = inf.receive();
 
         event = incoming.popString();

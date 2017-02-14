@@ -25,17 +25,13 @@
  */
 package org.jyre;
 
-import java.util.*;
-
-import org.zeromq.api.*;
-import org.zeromq.api.Message.Frame;
-
 /**
  * PingOkMessage class.
  */
 public class PingOkMessage {
     public static final ZreSocket.MessageType MESSAGE_TYPE = ZreSocket.MessageType.PING_OK;
 
+    protected Integer version;
     protected Integer sequence;
 
     /**

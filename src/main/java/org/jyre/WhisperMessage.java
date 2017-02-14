@@ -25,9 +25,7 @@
  */
 package org.jyre;
 
-import java.util.*;
-
-import org.zeromq.api.*;
+import org.zeromq.api.Message;
 import org.zeromq.api.Message.Frame;
 
 /**
@@ -36,6 +34,7 @@ import org.zeromq.api.Message.Frame;
 public class WhisperMessage {
     public static final ZreSocket.MessageType MESSAGE_TYPE = ZreSocket.MessageType.WHISPER;
 
+    protected Integer version;
     protected Integer sequence;
     protected Frame content = Message.EMPTY_FRAME;
 
@@ -78,22 +77,22 @@ public class WhisperMessage {
     }
 
     /**
-     * Set the content field, and takes ownership of supplied frame.
+     * Set the content field, and take ownership of supplied frame.
      *
      * @param frame The new content frame
      */
     public void setContent(Frame frame) {
-        content = frame;
+        this.content = frame;
     }
 
     /**
-     * Set the content field, and takes ownership of supplied frame.
+     * Set the content field, and take ownership of supplied frame.
      *
      * @param frame The new content frame
      * @return The WhisperMessage, for method chaining
      */
     public WhisperMessage withContent(Frame frame) {
-        content = frame;
+        this.content = frame;
         return this;
     }
 }

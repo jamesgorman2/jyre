@@ -25,14 +25,13 @@
  */
 package org.jyre;
 
-import java.util.*;
-import java.io.Closeable;
-import java.nio.ByteBuffer;
-
-import org.zeromq.api.*;
+import org.zeromq.ZMQ;
+import org.zeromq.api.Message;
 import org.zeromq.api.Message.Frame;
 import org.zeromq.api.Message.FrameBuilder;
-import org.zeromq.ZMQ;
+import org.zeromq.api.Socket;
+
+import java.io.Closeable;
 
 /**
  * ZreLogSocket class.

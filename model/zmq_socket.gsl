@@ -3,7 +3,11 @@
 .#  Generates a codec for a protocol specification
 .#
 .include "library.gsl"
+.include "library_bnf.gsl"
 .resolve_includes()
+.expand_headers()
+.generate_bnf()
+.set_defaults()
 .global.ClassName = java_class_name(class.name)
 .global.PackageName = java_package_name(switches.package)
 .echo "Generating src/main/java/$(switches.package)/$(ClassName)Socket.java..."
@@ -34,21 +38,6 @@ import org.zeromq.ZMQ;
  * The specification for this class is as follows:
  * <pre class="text">
 .for message
-.    message.name = "$(message.name:c)"
-.    for field where item() = 1
-.        for class.header
-.            for field as hfield
-.              copy hfield before field
-.            endfor
-.        endfor
-.    else
-.        for class.header
-.            for field as hfield
-.              copy hfield to message
-.            endfor
-.        endfor
-.    endfor
-.
  *  $(NAME) - $(string.trim(.?''):left)
 .    for field
 .        if type = "number"
@@ -219,7 +208,7 @@ public class $(ClassName)Socket implements Closeable {
                     while ($(java_var_name(name))ListSize-- > 0) {
                         message.$(java_var_name(name)).add(needle.getChars());
                     }
-.        elsif type = "dictionary"
+.        elsif type = "hash"
                     int $(java_var_name(name))HashSize = (0xff) & needle.getByte();
                     message.$(java_var_name(name)) = new HashMap<>($(java_var_name(name))HashSize);
                     while ($(java_var_name(name))HashSize-- > 0) {
@@ -231,6 +220,15 @@ public class $(ClassName)Socket implements Closeable {
                     //  Get next frame, leave current untouched
                     if (!frames.isEmpty()) {
                         message.$(java_var_name(name)) = frames.popFrame();
+                    } else {
+                        throw new IllegalArgumentException("Invalid message: missing frame: $(name)");
+                    }
+.        elsif type = "msg"
+                    //  Get remaining frames, leave current untouched
+                    if (!frames.isEmpty()) {
+                        while (!frames.isEmpty()) {
+                            message.$(java_var_name(name)).addFrame(frames.popFrame());
+                        }
                     } else {
                         throw new IllegalArgumentException("Invalid message: missing frame: $(name)");
                     }
@@ -315,7 +313,7 @@ public class $(ClassName)Socket implements Closeable {
         } else {
             builder.putByte((byte) 0);   //  Empty string array
         }
-.        elsif type = "dictionary"
+.        elsif type = "hash"
         if (message.$(java_var_name(name)) != null) {
             builder.putByte((byte) message.$(java_var_name(name)).size());
             for (Map.Entry<String, String> entry: message.$(java_var_name(name)).entrySet()) {
@@ -344,6 +342,10 @@ public class $(ClassName)Socket implements Closeable {
         //  Now add any frame fields, in order
 .        endif
         frames.addFrame(message.$(field.name));
+.    endfor
+.    for field where type = "msg"
+        //  Now add message field
+        frames.addFrames(message.$(field.name).getFrames());
 .    endfor
 
         return socket.send(frames);
@@ -377,7 +379,7 @@ import org.zeromq.api.Message.Frame;
 public class $(MessageName)Message {
     public static final $(ClassName)Socket.MessageType MESSAGE_TYPE = $(ClassName)Socket.MessageType.$(MESSAGE.NAME);
 
-.for field where !defined(value)
+.for field
 .    if type = "number"
 .        if size = 1
     protected Integer $(java_var_name(name));
@@ -394,10 +396,12 @@ public class $(MessageName)Message {
     protected String $(java_var_name(name));
 .    elsif type = "strings"
     protected List<String> $(java_var_name(name));
-.    elsif type = "dictionary"
+.    elsif type = "hash"
     protected Map<String, String> $(java_var_name(name));
 .    elsif type = "frame"
     protected Frame $(java_var_name(name)) = Message.EMPTY_FRAME;
+.    elsif type = "msg"
+    protected Message $(java_var_name(name)) = new Message();
 .    endif
 .endfor
 .for field where !defined(value)
@@ -568,7 +572,7 @@ public class $(MessageName)Message {
         this.$(java_var_name(name)) = $(java_var_name(name));
         return this;
     }
-.    elsif type = "dictionary"
+.    elsif type = "hash"
 
     /**
      * Get the the $(java_var_name(name)) dictionary.
@@ -721,22 +725,52 @@ public class $(MessageName)Message {
     }
 
     /**
-     * Set the $(java_var_name(name)) field, and takes ownership of supplied frame.
+     * Set the $(java_var_name(name)) field, and take ownership of supplied frame.
      *
      * @param frame The new $(java_var_name(name)) frame
      */
     public void set$(java_class_name(Name))(Frame frame) {
-        $(java_var_name(name)) = frame;
+        this.$(java_var_name(name)) = frame;
     }
 
     /**
-     * Set the $(java_var_name(name)) field, and takes ownership of supplied frame.
+     * Set the $(java_var_name(name)) field, and take ownership of supplied frame.
      *
      * @param frame The new $(java_var_name(name)) frame
      * @return The $(MessageName)Message, for method chaining
      */
     public $(MessageName)Message with$(java_class_name(Name))(Frame frame) {
-        $(java_var_name(name)) = frame;
+        this.$(java_var_name(name)) = frame;
+        return this;
+    }
+.    elsif type = "msg"
+
+    /**
+     * Get the $(java_var_name(name)) field.
+     *
+     * @return The $(java_var_name(name)) field
+     */
+    public Message get$(java_class_name(Name))() {
+        return $(java_var_name(name));
+    }
+
+    /**
+     * Set the $(java_var_name(name)) field, and take ownership of supplied message.
+     *
+     * @param message The new $(java_var_name(name)) message
+     */
+    public void set$(java_class_name(Name))(Message message) {
+        this.$(java_var_name(name)) = message;
+    }
+
+    /**
+     * Set the $(java_var_name(name)) field, and take ownership of supplied message.
+     *
+     * @param message The new $(java_var_name(name)) message
+     * @return The $(MessageName)Message, for method chaining
+     */
+    public $(MessageName)Message with$(java_class_name(Name))(Message message) {
+        this.$(java_var_name(name)) = message;
         return this;
     }
 .    endif
@@ -797,11 +831,13 @@ public class $(ClassName)SocketTest {
 .        elsif type = "strings"
         message.add$(stem_s(java_class_name(name)))("Name: Brutus");
         message.add$(stem_s(java_class_name(name)))("Age: 43");
-.        elsif type = "dictionary"
+.        elsif type = "hash"
         message.put$(stem_s(java_class_name(name)))("Name", "Brutus");
         message.put$(stem_s(java_class_name(name)))("Age", 43);
 .        elsif type = "frame"
         message.set$(java_class_name(name))(new Frame("Captcha Diem"));
+.        elsif type = "msg"
+        message.set$(java_class_name(name))(new new Message("Hello, World"));
 .        endif
 .    endfor
         
@@ -824,12 +860,14 @@ public class $(ClassName)SocketTest {
         assertEquals(message.get$(java_class_name(name))().size(), 2);
         assertEquals(message.get$(java_class_name(name))().get(0), "Name: Brutus");
         assertEquals(message.get$(java_class_name(name))().get(1), "Age: 43");
-.        elsif type = "dictionary"
+.        elsif type = "hash"
         assertEquals(message.get$(java_class_name(name))().size(), 2);
         assertEquals(message.get$(stem_s(java_class_name(name)))("Name", "?"), "Brutus");
         assertEquals(message.get$(stem_s(java_class_name(name)))("Age", 0), 43);
 .        elsif type = "frame"
         assertTrue(message.get$(java_class_name(name))().getString().equals("Captcha Diem"));
+.        elsif type = "msg"
+        assertTrue(message.get$(java_class_name(name))().popString().equals("Hello, World"));
 .        endif
 .    endfor
         
