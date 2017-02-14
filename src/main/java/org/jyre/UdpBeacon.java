@@ -30,6 +30,8 @@ class UdpBeacon {
     }
 
     public UdpBeacon(UUID uuid, int port) {
+        assert (port >= 0xc000 && port <= 0xffff);
+
         this.protocol = BEACON_PROTOCOL.getBytes();
         this.version = BEACON_VERSION;
         this.uuid = uuid;

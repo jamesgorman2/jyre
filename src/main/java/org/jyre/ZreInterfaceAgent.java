@@ -42,9 +42,9 @@ class ZreInterfaceAgent implements Backgroundable, ZreConstants {
     private String endpoint;
 
     /**
-     * Our port.
+     * Our identity.
      */
-    private int port;
+    private String identity;
 
     /**
      * Our change counter (e.g. status).
@@ -73,34 +73,29 @@ class ZreInterfaceAgent implements Backgroundable, ZreConstants {
 
     @Override
     public void run(Context context, Socket socket) {
-        this.context = context;
-        this.pipe = socket;
-
         // Bind to dummy address first, then random port
         Socket inbox = context.buildSocket(SocketType.ROUTER).bind(String.format("inproc://inbox-%s", toString()));
-        this.inbox = new ZreSocket(inbox);
-        this.port = inbox.getZMQSocket().bindToRandomPort("tcp://*", 0xc000, 0xffff);
-        if (port < 0) {
-            throw new IllegalStateException("Failed to bind to random port");
-        }
+        int port = inbox.getZMQSocket().bindToRandomPort("tcp://*", 0xc000, 0xffff);
 
-        // Create a UdpSocket for beacon broadcast
-        this.beacon = new UdpBeacon(UUID.randomUUID(), port);
+        this.context = context;
         try {
             this.udp = new UdpSocket(PING_PORT);
         } catch (IOException ex) {
             throw new RuntimeException("Unable to initialize DatagramChannel for UDP beacon:", ex);
         }
-
+        this.pipe = socket;
+        this.inbox = new ZreSocket(inbox);
+        this.beacon = new UdpBeacon(UUID.randomUUID(), port);
+        this.identity = beacon.getIdentity();
         this.endpoint = String.format("tcp://%s:%d", udp.getHost(), port);
-        this.logger = new ZreLogger(context.buildSocket(SocketType.PUB).connect(endpoint), beacon.getIdentity());
+        this.logger = new ZreLogger(context.buildSocket(SocketType.PUB).connect(endpoint), identity);
 
         // Create a Reactor for pipe, inbox, and beacon sockets
         this.reactor = context.buildReactor()
             .withInPollable(pipe, new PipeHandler())
             .withInPollable(inbox, new InboxHandler())
             .withInPollable(udp.getChannel(), new BeaconListener())
-            .withTimerRepeating(PING_INTERVAL, new PingListener())
+            .withTimerRepeating(ZreConstants.PING_INTERVAL, new PingListener())
             .build();
 
         // Start the reactor
@@ -114,10 +109,10 @@ class ZreInterfaceAgent implements Backgroundable, ZreConstants {
         }
 
         reactor.stop();
-        pipe.close();
-        inbox.close();
-        udp.close();
         logger.close();
+        inbox.close();
+        pipe.close();
+        udp.close();
     }
 
     private ZrePeer getZrePeer(String identity, String endpoint) {
@@ -133,18 +128,18 @@ class ZreInterfaceAgent implements Backgroundable, ZreConstants {
             }
 
             peers.put(identity, peer);
-            peer.connect(beacon.getIdentity(), endpoint);
+            peer.connect(this.identity, endpoint);
 
             // Handshake discovery by sending HELLO as first message
             HelloMessage hello = new HelloMessage()
-                .withEndpoint(String.format("tcp://%s:%d", udp.getHost(), this.port))
+                .withEndpoint(this.endpoint)
                 .withGroups(new ArrayList<>(ownGroups.keySet()))
                 .withStatus(status)
                 .withHeaders(headers);
             peer.send(hello);
 
-            logger.info(ZreLogger.Event.ENTER, peer.getIdentity(), "Peer %s connected to %s", peer.getIdentity(), beacon.getIdentity());
-            pipe.send(new Message(ENTER).addString(peer.getIdentity()));
+            logger.info(ZreLogger.Event.ENTER, peer.getIdentity(), "Peer %s connected to %s", identity, this.identity);
+            pipe.send(new Message(ENTER).addString(identity));
         }
 
         return peer;
@@ -158,7 +153,7 @@ class ZreInterfaceAgent implements Backgroundable, ZreConstants {
             peer.leave(group);
         }
 
-        logger.info(ZreLogger.Event.EXIT, peer.getIdentity(), "Peer %s disconnected", peer.getIdentity());
+        logger.info(ZreLogger.Event.EXIT, peer.getIdentity(), "Peer %s disconnected from %s", peer.getIdentity(), this.identity);
         pipe.send(new Message(EXIT).addString(peer.getIdentity()));
     }
 
@@ -242,7 +237,7 @@ class ZreInterfaceAgent implements Backgroundable, ZreConstants {
                     peer.send(join);
                 }
 
-                logger.info(ZreLogger.Event.JOIN, null, "Peer %s joined group %s", beacon.getIdentity(), name);
+                logger.info(ZreLogger.Event.JOIN, null, "Peer %s joined group %s", identity, name);
             }
         }
 
@@ -259,7 +254,7 @@ class ZreInterfaceAgent implements Backgroundable, ZreConstants {
                     peer.send(leave);
                 }
 
-                logger.info(ZreLogger.Event.LEAVE, null, "Peer %s left group %s", beacon.getIdentity(), name);
+                logger.info(ZreLogger.Event.LEAVE, null, "Peer %s left group %s", identity, name);
             }
         }
 
@@ -408,7 +403,7 @@ class ZreInterfaceAgent implements Backgroundable, ZreConstants {
         private boolean checkSequence(ZrePeer peer, int sequence) {
             boolean isValid = peer.isValidSequence(sequence);
             if (!isValid) {
-                logger.error(ZreLogger.Event.OTHER, peer.getIdentity(), "Peer %s lost messages from %s", beacon.getIdentity(), peer.getIdentity());
+                logger.error(ZreLogger.Event.OTHER, peer.getIdentity(), "Peer %s lost messages from %s", identity, peer.getIdentity());
                 removeZrePeer(peer);
             }
 
@@ -473,7 +468,7 @@ class ZreInterfaceAgent implements Backgroundable, ZreConstants {
                 } else if (peer.isEvasive()) {
                     peer.send(new PingMessage());
 
-                    logger.info(ZreLogger.Event.OTHER, peer.getIdentity(), "Peer %s is being evasive", peer.getIdentity());
+                    logger.info(ZreLogger.Event.OTHER, identity, "Peer %s is being evasive", identity);
                     pipe.send(new Message(EVASIVE).addString(identity));
                 }
             }
