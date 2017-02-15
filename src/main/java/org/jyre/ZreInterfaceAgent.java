@@ -5,6 +5,7 @@ import org.zeromq.api.Context;
 import org.zeromq.api.LoopAdapter;
 import org.zeromq.api.Message;
 import org.zeromq.api.Pollable;
+import org.zeromq.api.PollerType;
 import org.zeromq.api.Reactor;
 import org.zeromq.api.Socket;
 import org.zeromq.api.SocketType;
@@ -35,6 +36,8 @@ class ZreInterfaceAgent implements Backgroundable, ZreConstants {
     private UdpBeacon beacon;
     private UdpSocket udp;
     private ZreLogger logger;
+    private BeaconListener beaconListener;
+    private PingListener pingListener;
 
     /**
      * Our endpoint.
@@ -47,9 +50,30 @@ class ZreInterfaceAgent implements Backgroundable, ZreConstants {
     private String identity;
 
     /**
+     * Our name.
+     */
+    private String name;
+
+    /**
      * Our change counter (e.g. status).
      */
     private int status;
+
+    /**
+     * Flag to specify whether verbose output is enabled or not.
+     */
+    private boolean verbose;
+
+    /**
+     * Amount of time before peer is considered evasive, in milliseconds.
+     */
+    private int evasiveTimeout = ZreConstants.PEER_EVASIVE;
+
+    /**
+     * Amount of time before peer is considered expired, in milliseconds.
+     */
+    private int expiredTimeout = ZreConstants.PEER_EXPIRED;
+
 
     /**
      * Known peers, by identity.
@@ -87,6 +111,7 @@ class ZreInterfaceAgent implements Backgroundable, ZreConstants {
         this.inbox = new ZreSocket(inbox);
         this.beacon = new UdpBeacon(UUID.randomUUID(), port);
         this.identity = beacon.getIdentity();
+        this.name = identity;
         this.endpoint = String.format("tcp://%s:%d", udp.getHost(), port);
         this.logger = new ZreLogger(context.buildSocket(SocketType.PUB).connect(endpoint), identity);
 
@@ -94,16 +119,22 @@ class ZreInterfaceAgent implements Backgroundable, ZreConstants {
         this.reactor = context.buildReactor()
             .withInPollable(pipe, new PipeHandler())
             .withInPollable(inbox, new InboxHandler())
-            .withInPollable(udp.getChannel(), new BeaconListener())
-            .withTimerRepeating(ZreConstants.PING_INTERVAL, new PingListener())
+            .withInPollable(udp.getChannel(), beaconListener = new BeaconListener())
+            .withTimerRepeating(ZreConstants.PING_INTERVAL, this.pingListener = new PingListener())
             .build();
-
-        // Start the reactor
-        reactor.start();
     }
 
     @Override
     public void onClose() {
+        stop();
+    }
+
+    private void start() {
+        // Start the reactor
+        reactor.start();
+    }
+
+    private void stop() {
         for (ZrePeer peer : peers.values()) {
             peer.disconnect();
         }
@@ -133,8 +164,9 @@ class ZreInterfaceAgent implements Backgroundable, ZreConstants {
             // Handshake discovery by sending HELLO as first message
             HelloMessage hello = new HelloMessage()
                 .withEndpoint(this.endpoint)
+                .withName(this.name)
                 .withGroups(new ArrayList<>(ownGroups.keySet()))
-                .withStatus(status)
+                .withStatus(this.status)
                 .withHeaders(headers);
             peer.send(hello);
 
@@ -177,6 +209,65 @@ class ZreInterfaceAgent implements Backgroundable, ZreConstants {
 
             String command = message.popString();
             switch (command) {
+                case "UUID":
+                    onUuid();
+                    break;
+                case "NAME":
+                    onName();
+                    break;
+                case "SET NAME":
+                    onSetName(message);
+                    break;
+                case "SET HEADER":
+                    onSetHeader(message);
+                case "SET VERBOSE":
+                    verbose = true;
+                    break;
+                case "SET PORT":
+                    onSetPort(message);
+                    break;
+                case "SET EVASIVE TIMEOUT":
+                    onSetEvasiveTimeout(message);
+                    break;
+                case "SET EXPIRED TIMEOUT":
+                    onSetExpiredTimeout(message);
+                    break;
+                case "SET INTERVAL":
+                    onSetInterval(reactor, message);
+                    break;
+                case "SET ENDPOINT":
+                    onSetEndpoint(message);
+                    break;
+                case "PEERS":
+                    onPeers();
+                    break;
+                case "GROUP PEERS":
+                    onGroupPeers(message);
+                    break;
+                case "PEER NAME":
+                    onPeerName(message);
+                    break;
+                case "PEER ENDPOINT":
+                    onPeerEndpoint(message);
+                    break;
+                case "PEER HEADER":
+                    onPeerHeader(message);
+                    break;
+                case "PEER HEADERS":
+                    onPeerHeaders(message);
+                    break;
+                case "PEER GROUPS":
+                    onPeerGroups(message);
+                    break;
+                case "OWN GROUPS":
+                    onOwnGroups();
+                    break;
+                case "START":
+                    start();
+                    break;
+                case "STOP":
+                    stop();
+                    break;
                 case "WHISPER":
                     onWhisper(message);
                     break;
@@ -189,13 +280,104 @@ class ZreInterfaceAgent implements Backgroundable, ZreConstants {
                 case "LEAVE":
                     onLeave(message);
                     break;
-                case "SET":
-                    onSet(message);
-                    break;
                 case "PUBLISH":
                     onPublish(message);
                     break;
             }
+        }
+
+        private void onUuid() {
+            pipe.send(new Message(identity));
+        }
+
+        private void onName() {
+            pipe.send(new Message(name));
+        }
+
+        private void onSetName(Message message) {
+            name = message.popString();
+        }
+
+        private void onSetHeader(Message message) {
+            headers.put(message.popString(), message.popString());
+        }
+
+        private void onSetPort(Message message) {
+            int port = message.popInt();
+            reactor.cancel(beaconListener);
+            udp.close();
+            try {
+                udp = new UdpSocket(port);
+            } catch (IOException ex) {
+                System.err.println("E: Unable to initialize DatagramChannel for UDP beacon");
+                ex.printStackTrace();
+            }
+            reactor.addPollable(context.newPollable(udp.getChannel(), PollerType.POLL_IN), beaconListener);
+        }
+
+        private void onSetEvasiveTimeout(Message message) {
+            evasiveTimeout = message.popInt();
+        }
+
+        private void onSetExpiredTimeout(Message message) {
+            expiredTimeout = message.popInt();
+        }
+
+        private void onSetInterval(Reactor reactor, Message message) {
+            int interval = message.popInt();
+            reactor.cancel(pingListener);
+            reactor.addTimer(interval, -1, pingListener);
+        }
+
+        private void onSetEndpoint(Message message) {
+            inbox.getSocket().getZMQSocket().unbind(endpoint);
+            endpoint = message.popString();
+            inbox.getSocket().getZMQSocket().bind(endpoint);
+        }
+
+        private void onPeers() {
+            pipe.send(new Message().addStrings(new ArrayList<>(peers.keySet())));
+        }
+
+        private void onGroupPeers(Message message) {
+            String name = message.popString();
+            ZreGroup group = peerGroups.get(name);
+            pipe.send(new Message().addStrings(new ArrayList<>(group.getPeers().keySet())));
+        }
+
+        private void onPeerName(Message message) {
+            String identity = message.popString();
+            ZrePeer peer = peers.get(identity);
+            pipe.send(new Message(peer.getName()));
+        }
+
+        private void onPeerEndpoint(Message message) {
+            String identity = message.popString();
+            ZrePeer peer = peers.get(identity);
+            pipe.send(new Message(peer.getEndpoint()));
+        }
+
+        private void onPeerHeader(Message message) {
+            String identity = message.popString();
+            String key = message.popString();
+            ZrePeer peer = peers.get(identity);
+            pipe.send(new Message(peer.getHeader(key, "")));
+        }
+
+        private void onPeerHeaders(Message message) {
+            String identity = message.popString();
+            ZrePeer peer = peers.get(identity);
+            pipe.send(new Message().addMap(peer.getHeaders()));
+        }
+
+        private void onPeerGroups(Message message) {
+            String identity = message.popString();
+            ZrePeer peer = peers.get(identity);
+            pipe.send(new Message().addStrings(peer.getGroups()));
+        }
+
+        private void onOwnGroups() {
+            pipe.send(new Message().addStrings(new ArrayList<>(ownGroups.keySet())));
         }
 
         private void onWhisper(Message message) {
@@ -258,10 +440,6 @@ class ZreInterfaceAgent implements Backgroundable, ZreConstants {
             }
         }
 
-        private void onSet(Message message) {
-            headers.put(message.popString(), message.popString());
-        }
-
         private void onPublish(Message message) {
             // TODO: Support FileMQ
         }
@@ -298,7 +476,7 @@ class ZreInterfaceAgent implements Backgroundable, ZreConstants {
             }
 
             // Activity from peer resets peer timers
-            peer.onPing();
+            peer.onPing(evasiveTimeout, expiredTimeout);
 
             // Now process each command
             switch (messageType) {
@@ -328,6 +506,10 @@ class ZreInterfaceAgent implements Backgroundable, ZreConstants {
             if (!checkSequence(peer, hello.getSequence())) {
                 return;
             }
+
+            peer.setName(hello.getName());
+            peer.setGroups(hello.getGroups());
+            peer.setHeaders(hello.getHeaders());
 
             // Join peer to listed groups
             for (String name : hello.getGroups()) {
@@ -427,7 +609,7 @@ class ZreInterfaceAgent implements Backgroundable, ZreConstants {
                         && !message.getUuid().equals(beacon.getUuid())) {
                     ZrePeer peer = getZrePeer(message.getIdentity(), String.format("tcp://%s:%d", udp.getFrom(), message.getPort()));
                     if (message.getPort() > 0) {
-                        peer.onPing();
+                        peer.onPing(evasiveTimeout, expiredTimeout);
                     } else {
                         removeZrePeer(peer);
                     }

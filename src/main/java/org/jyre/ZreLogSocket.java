@@ -83,14 +83,6 @@ public class ZreLogSocket implements Closeable {
     }
 
     /**
-     * Destroy the ZreLogSocket.
-     */
-    @Override
-    public void close() {
-        socket.close();
-    }
-
-    /**
      * Get the message address.
      * 
      * @return The message address frame
@@ -106,6 +98,23 @@ public class ZreLogSocket implements Closeable {
      */
     public void setAddress(Frame address) {
         this.address = address;
+    }
+
+    /**
+     * Get the internal socket.
+     *
+     * @return The internal socket
+     */
+    public Socket getSocket() {
+        return socket;
+    }
+
+    /**
+     * Destroy the ZreLogSocket.
+     */
+    @Override
+    public void close() {
+        socket.close();
     }
 
     /**
@@ -159,7 +168,7 @@ public class ZreLogSocket implements Closeable {
             return type;
         } catch (Exception ex) {
             //  Error returns
-            System.out.println("Malformed message: " + id);
+            System.err.printf("E: Malformed message: %s\n", id);
             ex.printStackTrace();
             return null;
         }
@@ -187,9 +196,9 @@ public class ZreLogSocket implements Closeable {
         builder.putShort((short) (int) message.peer);
         builder.putLong(message.time);
         if (message.data != null) {
-            builder.putChars(message.data);
+            builder.putString(message.data);
         } else {
-            builder.putChars("");        //  Empty string
+            builder.putString("");        //  Empty string
         }
 
         //  Create multi-frame message

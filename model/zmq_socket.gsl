@@ -112,14 +112,6 @@ public class $(ClassName)Socket implements Closeable {
     }
 
     /**
-     * Destroy the $(ClassName)Socket.
-     */
-    @Override
-    public void close() {
-        socket.close();
-    }
-
-    /**
      * Get the message address.
      * 
      * @return The message address frame
@@ -135,6 +127,23 @@ public class $(ClassName)Socket implements Closeable {
      */
     public void setAddress(Frame address) {
         this.address = address;
+    }
+
+    /**
+     * Get the internal socket.
+     *
+     * @return The internal socket
+     */
+    public Socket getSocket() {
+        return socket;
+    }
+
+    /**
+     * Destroy the $(ClassName)Socket.
+     */
+    @Override
+    public void close() {
+        socket.close();
     }
 
     /**
@@ -203,19 +212,9 @@ public class $(ClassName)Socket implements Closeable {
                         throw new IllegalArgumentException();
 .            endif
 .        elsif type = "strings"
-                    int $(java_var_name(name))ListSize = (0xff) & needle.getByte();
-                    message.$(java_var_name(name)) = new ArrayList<>($(java_var_name(name))ListSize);
-                    while ($(java_var_name(name))ListSize-- > 0) {
-                        message.$(java_var_name(name)).add(needle.getChars());
-                    }
+                    message.$(java_var_name(name)) = needle.getClobs();
 .        elsif type = "hash"
-                    int $(java_var_name(name))HashSize = (0xff) & needle.getByte();
-                    message.$(java_var_name(name)) = new HashMap<>($(java_var_name(name))HashSize);
-                    while ($(java_var_name(name))HashSize-- > 0) {
-                        String string = needle.getChars();
-                        String[] kv = string.split("=");
-                        message.$(java_var_name(name)).put(kv[0], kv[1]);
-                    }
+                    message.$(java_var_name(name)) = needle.getMap();
 .        elsif type = "frame"
                     //  Get next frame, leave current untouched
                     if (!frames.isEmpty()) {
@@ -244,7 +243,7 @@ public class $(ClassName)Socket implements Closeable {
             return type;
         } catch (Exception ex) {
             //  Error returns
-            System.out.println("Malformed message: " + id);
+            System.err.printf("E: Malformed message: %s\\n", id);
             ex.printStackTrace();
             return null;
         }
@@ -296,31 +295,28 @@ public class $(ClassName)Socket implements Closeable {
         builder.putBytes(message.$(java_var_name(name)), 0, $(size));
 .        elsif type = "string"
 .            if defined(field.value)
-        builder.putChars("$(field.value:)");
+        builder.putString("$(field.value:)");
 .            else
         if (message.$(java_var_name(name)) != null) {
-            builder.putChars(message.$(java_var_name(name)));
+            builder.putString(message.$(java_var_name(name)));
         } else {
-            builder.putChars("");        //  Empty string
+            builder.putString("");        //  Empty string
         }
 .            endif
 .        elsif type = "strings"
         if (message.$(java_var_name(name)) != null) {
-            builder.putByte((byte) message.$(java_var_name(name)).size());
-            for (String value : message.$(java_var_name(name))) {
-                builder.putChars(value);
-            }
+            builder.putClobs(message.$(java_var_name(name)));
         } else {
-            builder.putByte((byte) 0);   //  Empty string array
+            builder.putInt(0);   //  Empty string array
         }
 .        elsif type = "hash"
         if (message.$(java_var_name(name)) != null) {
-            builder.putByte((byte) message.$(java_var_name(name)).size());
+            builder.putInt(message.$(java_var_name(name)).size());
             for (Map.Entry<String, String> entry: message.$(java_var_name(name)).entrySet()) {
-                builder.putChars(entry.getKey() + "=" + entry.getValue());
+                builder.putString(entry.getKey() + "=" + entry.getValue());
             }
         } else {
-            builder.putByte((byte) 0);   //  Empty dictionary
+            builder.putInt(0);   //  Empty dictionary
         }
 .        endif
 .    endfor

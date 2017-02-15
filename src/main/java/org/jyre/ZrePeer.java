@@ -5,6 +5,7 @@ import org.zeromq.api.Message;
 import org.zeromq.api.Socket;
 import org.zeromq.api.SocketType;
 
+import java.util.List;
 import java.util.Map;
 
 class ZrePeer {
@@ -12,12 +13,14 @@ class ZrePeer {
     private ZreSocket socket;
     private String identity;
     private String endpoint;
+    private String name;
     private State state = State.DISCONNECTED;
     private int status;
     private long evasiveAt;
     private long expiredAt;
     private int sentSequence;
     private int recvSequence;
+    private List<String> groups;
     private Map<String, String> headers;
 
     public ZrePeer(Context context, String identity) {
@@ -137,11 +140,14 @@ class ZrePeer {
 
     /**
      * Update evasive and expired status in response to receiving a PING.
+     *
+     * @param evasiveTimeout Amount of time before peer is considered evasive, in milliseconds
+     * @param expiredTimeout Amount of time before peer is considered expired, in milliseconds
      */
-    public void onPing() {
+    public void onPing(int evasiveTimeout, int expiredTimeout) {
         long now = System.currentTimeMillis();
-        evasiveAt = now + ZreConstants.PEER_EVASIVE;
-        expiredAt = now + ZreConstants.PEER_EXPIRED;
+        evasiveAt = now + evasiveTimeout;
+        expiredAt = now + expiredTimeout;
         state = State.READY;
     }
 
@@ -179,6 +185,14 @@ class ZrePeer {
         return identity;
     }
 
+    public String getName() {
+        return name;
+    }
+
+    public void setName(String name) {
+        this.name = name;
+    }
+
     public String getEndpoint() {
         return endpoint;
     }
@@ -199,6 +213,14 @@ class ZrePeer {
         return expiredAt;
     }
 
+    public List<String> getGroups() {
+        return groups;
+    }
+
+    public void setGroups(List<String> groups) {
+        this.groups = groups;
+    }
+
     public String getHeader(String key, String defaultValue) {
         String header = headers.get(key);
         if (header == null) {
@@ -206,6 +228,10 @@ class ZrePeer {
         }
 
         return header;
+    }
+
+    public Map<String, String> getHeaders() {
+        return headers;
     }
 
     public void setHeaders(Map<String, String> headers) {

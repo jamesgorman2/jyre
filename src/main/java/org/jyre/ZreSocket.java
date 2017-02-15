@@ -32,8 +32,6 @@ import org.zeromq.api.Message.FrameBuilder;
 import org.zeromq.api.Socket;
 
 import java.io.Closeable;
-import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.Map;
 
 /**
@@ -48,7 +46,7 @@ import java.util.Map;
  *    groups                       strings
  *    status                       number 1
  *    name                         string
- *    headers                      hash
+ *    headers                      dictionary
  *  WHISPER - Send a multi-part message to a peer
  *    version                      number 1
  *    sequence                     number 2
@@ -115,14 +113,6 @@ public class ZreSocket implements Closeable {
     }
 
     /**
-     * Destroy the ZreSocket.
-     */
-    @Override
-    public void close() {
-        socket.close();
-    }
-
-    /**
      * Get the message address.
      * 
      * @return The message address frame
@@ -138,6 +128,23 @@ public class ZreSocket implements Closeable {
      */
     public void setAddress(Frame address) {
         this.address = address;
+    }
+
+    /**
+     * Get the internal socket.
+     *
+     * @return The internal socket
+     */
+    public Socket getSocket() {
+        return socket;
+    }
+
+    /**
+     * Destroy the ZreSocket.
+     */
+    @Override
+    public void close() {
+        socket.close();
     }
 
     /**
@@ -181,20 +188,10 @@ public class ZreSocket implements Closeable {
                         throw new IllegalArgumentException();
                     message.sequence = (0xffff) & needle.getShort();
                     message.endpoint = needle.getChars();
-                    int groupsListSize = (0xff) & needle.getByte();
-                    message.groups = new ArrayList<>(groupsListSize);
-                    while (groupsListSize-- > 0) {
-                        message.groups.add(needle.getChars());
-                    }
+                    message.groups = needle.getClobs();
                     message.status = (0xff) & needle.getByte();
                     message.name = needle.getChars();
-                    int headersHashSize = (0xff) & needle.getByte();
-                    message.headers = new HashMap<>(headersHashSize);
-                    while (headersHashSize-- > 0) {
-                        String string = needle.getChars();
-                        String[] kv = string.split("=");
-                        message.headers.put(kv[0], kv[1]);
-                    }
+                    message.headers = needle.getMap();
                     break;
                 }
                 case WHISPER: {
@@ -269,7 +266,7 @@ public class ZreSocket implements Closeable {
             return type;
         } catch (Exception ex) {
             //  Error returns
-            System.out.println("Malformed message: " + id);
+            System.err.printf("E: Malformed message: %s\n", id);
             ex.printStackTrace();
             return null;
         }
@@ -336,31 +333,28 @@ public class ZreSocket implements Closeable {
         builder.putByte((byte) 2);
         builder.putShort((short) (int) message.sequence);
         if (message.endpoint != null) {
-            builder.putChars(message.endpoint);
+            builder.putString(message.endpoint);
         } else {
-            builder.putChars("");        //  Empty string
+            builder.putString("");        //  Empty string
         }
         if (message.groups != null) {
-            builder.putByte((byte) message.groups.size());
-            for (String value : message.groups) {
-                builder.putChars(value);
-            }
+            builder.putClobs(message.groups);
         } else {
-            builder.putByte((byte) 0);   //  Empty string array
+            builder.putInt(0);   //  Empty string array
         }
         builder.putByte((byte) (int) message.status);
         if (message.name != null) {
-            builder.putChars(message.name);
+            builder.putString(message.name);
         } else {
-            builder.putChars("");        //  Empty string
+            builder.putString("");        //  Empty string
         }
         if (message.headers != null) {
-            builder.putByte((byte) message.headers.size());
+            builder.putInt(message.headers.size());
             for (Map.Entry<String, String> entry: message.headers.entrySet()) {
-                builder.putChars(entry.getKey() + "=" + entry.getValue());
+                builder.putString(entry.getKey() + "=" + entry.getValue());
             }
         } else {
-            builder.putByte((byte) 0);   //  Empty dictionary
+            builder.putInt(0);   //  Empty dictionary
         }
 
         //  Create multi-frame message
@@ -420,9 +414,9 @@ public class ZreSocket implements Closeable {
         builder.putByte((byte) 2);
         builder.putShort((short) (int) message.sequence);
         if (message.group != null) {
-            builder.putChars(message.group);
+            builder.putString(message.group);
         } else {
-            builder.putChars("");        //  Empty string
+            builder.putString("");        //  Empty string
         }
 
         //  Create multi-frame message
@@ -455,9 +449,9 @@ public class ZreSocket implements Closeable {
         builder.putByte((byte) 2);
         builder.putShort((short) (int) message.sequence);
         if (message.group != null) {
-            builder.putChars(message.group);
+            builder.putString(message.group);
         } else {
-            builder.putChars("");        //  Empty string
+            builder.putString("");        //  Empty string
         }
         builder.putByte((byte) (int) message.status);
 
@@ -488,9 +482,9 @@ public class ZreSocket implements Closeable {
         builder.putByte((byte) 2);
         builder.putShort((short) (int) message.sequence);
         if (message.group != null) {
-            builder.putChars(message.group);
+            builder.putString(message.group);
         } else {
-            builder.putChars("");        //  Empty string
+            builder.putString("");        //  Empty string
         }
         builder.putByte((byte) (int) message.status);
 
