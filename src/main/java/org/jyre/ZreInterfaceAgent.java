@@ -122,6 +122,9 @@ class ZreInterfaceAgent implements Backgroundable, ZreConstants {
             .withInPollable(udp.getChannel(), beaconListener = new BeaconListener())
             .withTimerRepeating(ZreConstants.PING_INTERVAL, this.pingListener = new PingListener())
             .build();
+
+        // Start the reactor
+        start();
     }
 
     @Override
@@ -129,8 +132,7 @@ class ZreInterfaceAgent implements Backgroundable, ZreConstants {
         stop();
     }
 
-    private void start() {
-        // Start the reactor
+    public void start() {
         reactor.start();
     }
 
@@ -171,7 +173,6 @@ class ZreInterfaceAgent implements Backgroundable, ZreConstants {
             peer.send(hello);
 
             logger.info(ZreLogger.Event.ENTER, peer.getIdentity(), "Peer %s connected to %s", identity, this.identity);
-            pipe.send(new Message(ENTER).addString(identity));
         }
 
         return peer;
@@ -186,7 +187,7 @@ class ZreInterfaceAgent implements Backgroundable, ZreConstants {
         }
 
         logger.info(ZreLogger.Event.EXIT, peer.getIdentity(), "Peer %s disconnected from %s", peer.getIdentity(), this.identity);
-        pipe.send(new Message(EXIT).addString(peer.getIdentity()));
+        pipe.send(new Message(EXIT).addString(peer.getIdentity()).addString(peer.getName()));
     }
 
     private ZreGroup getZreGroup(String name) {
@@ -401,7 +402,7 @@ class ZreInterfaceAgent implements Backgroundable, ZreConstants {
             // Send frame on out to group's mailbox, drop message
             // if group doesn't exist (may have been destroyed)
             if (group != null) {
-                ShoutMessage shout = new ShoutMessage().withContent(message.popFrame());
+                ShoutMessage shout = new ShoutMessage().withGroup(name).withContent(message.popFrame());
                 group.send(shout);
             }
         }
@@ -511,13 +512,16 @@ class ZreInterfaceAgent implements Backgroundable, ZreConstants {
             peer.setGroups(hello.getGroups());
             peer.setHeaders(hello.getHeaders());
 
+            // Tell the caller about the new peer
+            pipe.send(new Message(ENTER).addString(peer.getIdentity()).addString(peer.getName()));
+
             // Join peer to listed groups
             for (String name : hello.getGroups()) {
                 ZreGroup group = getZreGroup(name);
                 peer.join(group);
 
-                // Now tell the caller about the peer joined a group
-                pipe.send(new Message(ENTER).addString(peer.getIdentity()).addString(name));
+                // Now tell the caller about the peers group
+                pipe.send(new Message(JOIN).addString(peer.getIdentity()).addString(name));
             }
 
             // Hello command holds latest status of peer

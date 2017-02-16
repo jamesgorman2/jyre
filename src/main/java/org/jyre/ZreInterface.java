@@ -158,6 +158,14 @@ public class ZreInterface {
         return pipe.receiveMessage();
     }
 
+    public Context getContext() {
+        return context;
+    }
+
+    public Socket getSocket() {
+        return pipe;
+    }
+
     public void close() {
         context.close();
     }
