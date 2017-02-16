@@ -32,7 +32,6 @@ import org.zeromq.api.Message.FrameBuilder;
 import org.zeromq.api.Socket;
 
 import java.io.Closeable;
-import java.util.Map;
 
 /**
  * ZreSocket class.
@@ -46,7 +45,7 @@ import java.util.Map;
  *    groups                       strings
  *    status                       number 1
  *    name                         string
- *    headers                      dictionary
+ *    headers                      hash
  *  WHISPER - Send a multi-part message to a peer
  *    version                      number 1
  *    sequence                     number 2
@@ -184,8 +183,9 @@ public class ZreSocket implements Closeable {
                 case HELLO: {
                     HelloMessage message = this.hello = new HelloMessage();
                     message.version = (0xff) & needle.getByte();
-                    if (message.version != 2)
+                    if (message.version != 2) {
                         throw new IllegalArgumentException();
+                    }
                     message.sequence = (0xffff) & needle.getShort();
                     message.endpoint = needle.getChars();
                     message.groups = needle.getClobs();
@@ -197,8 +197,9 @@ public class ZreSocket implements Closeable {
                 case WHISPER: {
                     WhisperMessage message = this.whisper = new WhisperMessage();
                     message.version = (0xff) & needle.getByte();
-                    if (message.version != 2)
+                    if (message.version != 2) {
                         throw new IllegalArgumentException();
+                    }
                     message.sequence = (0xffff) & needle.getShort();
                     //  Get next frame, leave current untouched
                     if (!frames.isEmpty()) {
@@ -211,8 +212,9 @@ public class ZreSocket implements Closeable {
                 case SHOUT: {
                     ShoutMessage message = this.shout = new ShoutMessage();
                     message.version = (0xff) & needle.getByte();
-                    if (message.version != 2)
+                    if (message.version != 2) {
                         throw new IllegalArgumentException();
+                    }
                     message.sequence = (0xffff) & needle.getShort();
                     message.group = needle.getChars();
                     //  Get next frame, leave current untouched
@@ -226,8 +228,9 @@ public class ZreSocket implements Closeable {
                 case JOIN: {
                     JoinMessage message = this.join = new JoinMessage();
                     message.version = (0xff) & needle.getByte();
-                    if (message.version != 2)
+                    if (message.version != 2) {
                         throw new IllegalArgumentException();
+                    }
                     message.sequence = (0xffff) & needle.getShort();
                     message.group = needle.getChars();
                     message.status = (0xff) & needle.getByte();
@@ -236,8 +239,9 @@ public class ZreSocket implements Closeable {
                 case LEAVE: {
                     LeaveMessage message = this.leave = new LeaveMessage();
                     message.version = (0xff) & needle.getByte();
-                    if (message.version != 2)
+                    if (message.version != 2) {
                         throw new IllegalArgumentException();
+                    }
                     message.sequence = (0xffff) & needle.getShort();
                     message.group = needle.getChars();
                     message.status = (0xff) & needle.getByte();
@@ -246,16 +250,18 @@ public class ZreSocket implements Closeable {
                 case PING: {
                     PingMessage message = this.ping = new PingMessage();
                     message.version = (0xff) & needle.getByte();
-                    if (message.version != 2)
+                    if (message.version != 2) {
                         throw new IllegalArgumentException();
+                    }
                     message.sequence = (0xffff) & needle.getShort();
                     break;
                 }
                 case PING_OK: {
                     PingOkMessage message = this.pingOk = new PingOkMessage();
                     message.version = (0xff) & needle.getByte();
-                    if (message.version != 2)
+                    if (message.version != 2) {
                         throw new IllegalArgumentException();
+                    }
                     message.sequence = (0xffff) & needle.getShort();
                     break;
                 }
@@ -349,10 +355,7 @@ public class ZreSocket implements Closeable {
             builder.putString("");        //  Empty string
         }
         if (message.headers != null) {
-            builder.putInt(message.headers.size());
-            for (Map.Entry<String, String> entry: message.headers.entrySet()) {
-                builder.putString(entry.getKey() + "=" + entry.getValue());
-            }
+            builder.putMap(message.headers);
         } else {
             builder.putInt(0);   //  Empty dictionary
         }

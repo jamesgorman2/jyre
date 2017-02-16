@@ -195,21 +195,24 @@ public class $(ClassName)Socket implements Closeable {
                     message.$(java_var_name(name)) = needle.getLong();
 .            endif
 .                if defined(field.value)
-                    if (message.$(java_var_name(name)) != $(field.value:))
+                    if (message.$(java_var_name(name)) != $(field.value:)) {
                         throw new IllegalArgumentException();
+                    }
 .                endif
 .        elsif type = "octets"
                     message.$(java_var_name(name)) = needle.getBytes();
                     assert (message.$(java_var_name(name)).length == $(size));
 .            if defined(field.value)
-                    if (message.$(java_var_name(name)) != $(field.value:))
+                    if (message.$(java_var_name(name)) != $(field.value:)) {
                         throw new IllegalArgumentException();
+                    }
 .            endif
 .        elsif type = "string"
                     message.$(java_var_name(name)) = needle.getChars();
 .            if defined(field.value)
-                    if (!message.$(java_var_name(name)).equals( "$(field.value:)"))
+                    if (!message.$(java_var_name(name)).equals( "$(field.value:)")) {
                         throw new IllegalArgumentException();
+                    }
 .            endif
 .        elsif type = "strings"
                     message.$(java_var_name(name)) = needle.getClobs();
@@ -311,10 +314,7 @@ public class $(ClassName)Socket implements Closeable {
         }
 .        elsif type = "hash"
         if (message.$(java_var_name(name)) != null) {
-            builder.putInt(message.$(java_var_name(name)).size());
-            for (Map.Entry<String, String> entry: message.$(java_var_name(name)).entrySet()) {
-                builder.putString(entry.getKey() + "=" + entry.getValue());
-            }
+            builder.putMap(message.$(java_var_name(name)));
         } else {
             builder.putInt(0);   //  Empty dictionary
         }

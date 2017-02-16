@@ -1,11 +1,14 @@
 package org.jyre;
 
-import static org.junit.Assert.*;
+import org.junit.Before;
+import org.junit.Test;
+import org.zeromq.api.Context;
+import org.zeromq.api.Socket;
+import org.zeromq.api.SocketType;
+import org.zeromq.jzmq.ManagedContext;
 
-import org.junit.*;
-import org.zeromq.api.*;
-import org.zeromq.api.Message.Frame;
-import org.zeromq.jzmq.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 
 /**
  * Test ZreLogSocket.
