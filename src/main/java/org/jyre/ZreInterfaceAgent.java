@@ -517,7 +517,7 @@ class ZreInterfaceAgent implements Backgroundable, ZreConstants {
                 peer.join(group);
 
                 // Now tell the caller about the peer joined a group
-                pipe.send(new Message(JOIN).addString(peer.getIdentity()).addString(name));
+                pipe.send(new Message(ENTER).addString(peer.getIdentity()).addString(name));
             }
 
             // Hello command holds latest status of peer
