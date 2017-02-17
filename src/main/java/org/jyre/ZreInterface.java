@@ -4,6 +4,7 @@ import org.zeromq.ContextFactory;
 import org.zeromq.api.Context;
 import org.zeromq.api.Message;
 import org.zeromq.api.Socket;
+import org.zeromq.api.SocketType;
 
 import java.util.List;
 import java.util.Map;
@@ -38,9 +39,11 @@ public class ZreInterface {
 
     private Context context;
     private Socket pipe;
+    private Socket inbox;
 
     public ZreInterface() {
         this.context = ContextFactory.createContext(1);
+        this.inbox = context.buildSocket(SocketType.PAIR).bind("inproc://inbox");
         this.pipe = context.fork(new ZreInterfaceAgent());
     }
 
@@ -154,16 +157,16 @@ public class ZreInterface {
         pipe.send(new Message(PUBLISH).addString(pathName).addString(virtualSpace));
     }
 
-    public Message receive() {
-        return pipe.receiveMessage();
-    }
-
     public Context getContext() {
         return context;
     }
 
     public Socket getSocket() {
-        return pipe;
+        return inbox;
+    }
+
+    public Message receive() {
+        return inbox.receiveMessage();
     }
 
     public void close() {

@@ -50,6 +50,7 @@ public class Chat extends Thread {
                         case "leave":
                             zre.leave(line.substring(line.indexOf(" ") + 1));
                             break;
+                        case "exit":
                         case "quit":
                             exit();
                             return;
@@ -130,15 +131,13 @@ public class Chat extends Thread {
         }
 
         private void onEnter(Message message) {
-            message.popString();
-            String name = message.popString();
-            System.out.printf("[INFO] %s entered\n", name);
+            String peer = message.popString();
+            System.out.printf("[INFO] %s entered\n", zre.getPeerName(peer));
         }
 
         private void onExit(Message message) {
-            message.popString();
-            String name = message.popString();
-            System.out.printf("[INFO] %s left\n", name);
+            String peer = message.popString();
+            System.out.printf("[INFO] %s left\n", zre.getPeerName(peer));
         }
 
         private void onJoin(Message message) {
