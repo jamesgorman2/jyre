@@ -234,8 +234,9 @@ class ZreInterfaceAgent implements Backgroundable, ZreConstants {
                     break;
                 case "SET HEADER":
                     onSetHeader(message);
+                    break;
                 case "SET VERBOSE":
-                    verbose = true;
+                    onSetVerbose();
                     break;
                 case "SET PORT":
                     onSetPort(message);
@@ -316,6 +317,10 @@ class ZreInterfaceAgent implements Backgroundable, ZreConstants {
             headers.put(message.popString(), message.popString());
         }
 
+        private void onSetVerbose() {
+            verbose = true;
+        }
+
         private void onSetPort(Message message) {
             int port = message.popInt();
             reactor.build().cancel(beaconHandler);
@@ -358,38 +363,62 @@ class ZreInterfaceAgent implements Backgroundable, ZreConstants {
         private void onGroupPeers(Message message) {
             String name = message.popString();
             ZreGroup group = peerGroups.get(name);
-            pipe.send(new Message().addStrings(new ArrayList<>(group.getPeers().keySet())));
+            if (group != null) {
+                pipe.send(new Message().addStrings(new ArrayList<>(group.getPeers().keySet())));
+            } else {
+                pipe.send(new Message());
+            }
         }
 
         private void onPeerName(Message message) {
             String identity = message.popString();
             ZrePeer peer = peers.get(identity);
-            pipe.send(new Message(peer.getName()));
+            if (peer != null) {
+                pipe.send(new Message(peer.getName()));
+            } else {
+                pipe.send(new Message());
+            }
         }
 
         private void onPeerEndpoint(Message message) {
             String identity = message.popString();
             ZrePeer peer = peers.get(identity);
-            pipe.send(new Message(peer.getEndpoint()));
+            if (peer != null) {
+                pipe.send(new Message(peer.getEndpoint()));
+            } else {
+                pipe.send(new Message());
+            }
         }
 
         private void onPeerHeader(Message message) {
             String identity = message.popString();
             String key = message.popString();
             ZrePeer peer = peers.get(identity);
-            pipe.send(new Message(peer.getHeader(key, "")));
+            if (peer != null) {
+                pipe.send(new Message(peer.getHeader(key, "")));
+            } else {
+                pipe.send(new Message());
+            }
         }
 
         private void onPeerHeaders(Message message) {
             String identity = message.popString();
             ZrePeer peer = peers.get(identity);
-            pipe.send(new Message().addMap(peer.getHeaders()));
+            if (peer != null) {
+                pipe.send(new Message().addMap(peer.getHeaders()));
+            } else {
+                pipe.send(new Message());
+            }
         }
 
         private void onPeerGroups(Message message) {
             String identity = message.popString();
             ZrePeer peer = peers.get(identity);
-            pipe.send(new Message().addStrings(peer.getGroups()));
+            if (peer != null) {
+                pipe.send(new Message().addStrings(peer.getGroups()));
+            } else {
+                pipe.send(new Message());
+            }
         }
 
         private void onOwnGroups() {

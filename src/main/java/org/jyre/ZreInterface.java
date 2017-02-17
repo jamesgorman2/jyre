@@ -92,32 +92,38 @@ public class ZreInterface {
 
     public List<String> getGroupPeers(String name) {
         pipe.send(new Message(GROUP_PEERS).addString(name));
-        return pipe.receiveMessage().popStrings();
+        Message message = pipe.receiveMessage();
+        return message.isEmpty() ? null : message.popStrings();
     }
 
     public String getPeerName(String identity) {
         pipe.send(new Message(PEER_NAME).addString(identity));
-        return pipe.receiveMessage().popString();
+        Message message = pipe.receiveMessage();
+        return message.isEmpty() ? null : message.popString();
     }
 
     public String getPeerEndpoint(String identity) {
         pipe.send(new Message(PEER_ENDPOINT).addString(identity));
-        return pipe.receiveMessage().popString();
+        Message message = pipe.receiveMessage();
+        return message.isEmpty() ? null : message.popString();
     }
 
     public String getPeerHeader(String identity, String key) {
         pipe.send(new Message(PEER_HEADER).addString(identity).addString(key));
-        return pipe.receiveMessage().popString();
+        Message message = pipe.receiveMessage();
+        return message.isEmpty() ? null : message.popString();
     }
 
     public Map<String, String> getPeerHeaders(String identity) {
         pipe.send(new Message(PEER_HEADERS).addString(identity));
-        return pipe.receiveMessage().popMap();
+        Message message = pipe.receiveMessage();
+        return message.isEmpty() ? null : message.popMap();
     }
 
     public List<String> getPeerGroups(String identity) {
         pipe.send(new Message(PEER_GROUPS).addString(identity));
-        return pipe.receiveMessage().popStrings();
+        Message message = pipe.receiveMessage();
+        return message.isEmpty() ? null : message.popStrings();
     }
 
     public List<String> getOwnGroups() {
