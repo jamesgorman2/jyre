@@ -26,6 +26,7 @@ class ZrePeer {
     public ZrePeer(Context context, String identity) {
         this.context = context;
         this.identity = identity;
+        this.name = identity;
     }
 
     public void send(HelloMessage message) {
@@ -162,7 +163,6 @@ class ZrePeer {
         long now = System.currentTimeMillis();
         evasiveAt = now + evasiveTimeout;
         expiredAt = now + expiredTimeout;
-        state = State.READY;
     }
 
     /**

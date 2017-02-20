@@ -192,6 +192,7 @@ class ZreInterfaceAgent implements Backgroundable, ZreConstants {
     }
 
     private void removeZrePeer(ZrePeer peer) {
+        new RuntimeException().printStackTrace();
         if (peer.isConnected()) {
             peer.disconnect();
         }
@@ -202,7 +203,7 @@ class ZreInterfaceAgent implements Backgroundable, ZreConstants {
         }
 
         logger.info(ZreLogger.Event.EXIT, peer.getIdentity(), "Peer %s disconnected from %s", peer.getIdentity(), this.identity);
-        outbox.send(new Message(EXIT).addString(peer.getIdentity()).addString(peer.getName() != null ? peer.getName() : peer.getIdentity()));
+        outbox.send(new Message(EXIT).addString(peer.getIdentity()).addString(peer.getName()));
     }
 
     private ZreGroup getZreGroup(String name) {
