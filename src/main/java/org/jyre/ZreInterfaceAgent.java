@@ -192,10 +192,7 @@ class ZreInterfaceAgent implements Backgroundable, ZreConstants {
     }
 
     private void removeZrePeer(ZrePeer peer) {
-        new RuntimeException().printStackTrace();
-        if (peer.isConnected()) {
-            peer.disconnect();
-        }
+        peer.disconnect();
 
         peers.remove(peer.getIdentity());
         for (ZreGroup group : peerGroups.values()) {
@@ -331,9 +328,8 @@ class ZreInterfaceAgent implements Backgroundable, ZreConstants {
             try {
                 udp = new UdpSocket(port);
             } catch (IOException ex) {
-                System.err.println("E: Unable to initialize DatagramChannel for UDP beacon");
                 if (verbose) {
-                    ex.printStackTrace();
+                    System.err.println("E: Unable to initialize DatagramChannel for UDP beacon");
                 }
             }
             reactor.withInPollable(udp.getChannel(), beaconHandler);
@@ -512,7 +508,6 @@ class ZreInterfaceAgent implements Backgroundable, ZreConstants {
             String identity = zre.getAddress().getString();
             ZrePeer peer = peers.get(identity);
             if (messageType == ZreSocket.MessageType.HELLO) {
-                System.out.printf("%s %s\n", identity, zre.getHello().getName());
                 // On HELLO we may create the peer if it's unknown
                 // On other commands the peer must already exist
                 peer = getZrePeer(identity, zre.getHello().getEndpoint());
@@ -521,6 +516,9 @@ class ZreInterfaceAgent implements Backgroundable, ZreConstants {
 
             // Ignore command if peer isn't ready
             if (peer == null || !peer.isReady()) {
+                if (verbose) {
+                    System.err.printf("E: Discarding %s from %s\n", messageType, peer == null ? identity : peer.getName());
+                }
                 return;
             }
 
@@ -540,6 +538,9 @@ class ZreInterfaceAgent implements Backgroundable, ZreConstants {
                     break;
                 case PING:
                     onPing(peer);
+                    break;
+                case PING_OK:
+                    onPingOk(peer);
                     break;
                 case JOIN:
                     onJoin(peer);
@@ -604,6 +605,14 @@ class ZreInterfaceAgent implements Backgroundable, ZreConstants {
             peer.send(new PingOkMessage());
         }
 
+        private void onPingOk(ZrePeer peer) {
+            PingOkMessage pingOk = zre.getPingOk();
+            checkSequence(peer, pingOk.getSequence());
+
+            // PING-OK sets peer from EVASIVE back to READY
+            peer.onReady();
+        }
+
         private void onJoin(ZrePeer peer) {
             JoinMessage join = zre.getJoin();
             if (!checkSequence(peer, join.getSequence())) {
@@ -660,16 +669,17 @@ class ZreInterfaceAgent implements Backgroundable, ZreConstants {
                         && message.getVersion() == UdpBeacon.BEACON_VERSION
                         && !message.getUuid().equals(beacon.getUuid())) {
                     ZrePeer peer = getZrePeer(message.getIdentity(), String.format("tcp://%s:%d", udp.getFrom(), message.getPort()));
-                    if (message.getPort() > 0) {
-                        peer.onPing(evasiveTimeout, expiredTimeout);
-                    } else {
+                    if (message.getPort() == 0) {
                         removeZrePeer(peer);
+                    } else if (peer.isReady()) {
+                        peer.onPing(evasiveTimeout, expiredTimeout);
+                    } else if (verbose) {
+                        System.err.printf("E: Ignoring beacon from %s in state %s\n", peer.getName(), peer.getState());
                     }
                 }
             } catch (IOException ex) {
-                System.err.println("E: Unable to receive UDP beacon");
                 if (verbose) {
-                    ex.printStackTrace();
+                    System.err.println("E: Unable to receive UDP beacon");
                 }
             } finally {
                 buffer.clear();
@@ -688,9 +698,8 @@ class ZreInterfaceAgent implements Backgroundable, ZreConstants {
             try {
                 udp.send(beacon.getBuffer());
             } catch (IOException ex) {
-                System.err.println("E: Unable to send UDP beacon");
                 if (verbose) {
-                    ex.printStackTrace();
+                    System.err.println("E: Unable to send UDP beacon");
                 }
             }
         }

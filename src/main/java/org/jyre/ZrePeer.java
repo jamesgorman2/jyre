@@ -30,51 +30,51 @@ class ZrePeer {
     }
 
     public void send(HelloMessage message) {
-        if (!isConnected()) return;
+        assert socket != null;
         if (!socket.send(message.withSequence(incrementSentSequence()))) {
-            disconnect();
+            System.err.printf("E: Failed to send %s message\n", HelloMessage.MESSAGE_TYPE);
         }
     }
 
     public void send(JoinMessage message) {
-        if (!isConnected()) return;
+        assert socket != null;
         if (!socket.send(message.withSequence(incrementSentSequence()))) {
-            disconnect();
+            System.err.printf("E: Failed to send %s message\n", JoinMessage.MESSAGE_TYPE);
         }
     }
 
     public void send(LeaveMessage message) {
-        if (!isConnected()) return;
+        assert socket != null;
         if (!socket.send(message.withSequence(incrementSentSequence()))) {
-            disconnect();
+            System.err.printf("E: Failed to send %s message\n", LeaveMessage.MESSAGE_TYPE);
         }
     }
 
     public void send(PingMessage message) {
-        if (!isConnected()) return;
+        assert socket != null;
         if (!socket.send(message.withSequence(incrementSentSequence()))) {
-            disconnect();
+            System.err.printf("E: Failed to send %s message\n", PingMessage.MESSAGE_TYPE);
         }
     }
 
     public void send(PingOkMessage message) {
-        if (!isConnected()) return;
+        assert socket != null;
         if (!socket.send(message.withSequence(incrementSentSequence()))) {
-            disconnect();
+            System.err.printf("E: Failed to send %s message\n", PingOkMessage.MESSAGE_TYPE);
         }
     }
 
     public void send(ShoutMessage message) {
-        if (!isConnected()) return;
+        assert socket != null;
         if (!socket.send(message.withSequence(incrementSentSequence()))) {
-            disconnect();
+            System.err.printf("E: Failed to send %s message\n", ShoutMessage.MESSAGE_TYPE);
         }
     }
 
     public void send(WhisperMessage message) {
-        if (!isConnected()) return;
+        assert socket != null;
         if (!socket.send(message.withSequence(incrementSentSequence()))) {
-            disconnect();
+            System.err.printf("E: Failed to send %s message\n", WhisperMessage.MESSAGE_TYPE);
         }
     }
 
@@ -85,6 +85,8 @@ class ZrePeer {
      * @param endpoint The endpoint of the remote peer
      */
     public void connect(String replyTo, String endpoint) {
+        assert state == State.DISCONNECTED;
+
         Socket socket = context.buildSocket(SocketType.DEALER)
             .withIdentity(replyTo.getBytes(Message.CHARSET))
             .withSendHighWatermark(ZreConstants.PEER_HWM)
@@ -100,12 +102,14 @@ class ZrePeer {
      * until connected again.
      */
     public void disconnect() {
-        try {
-            socket.close();
-        } finally {
-            this.state = State.DISCONNECTED;
-            this.socket = null;
-            this.endpoint = null;
+        if (socket != null) {
+            try {
+                socket.close();
+            } finally {
+                this.state = State.DISCONNECTED;
+                this.socket = null;
+                this.endpoint = null;
+            }
         }
     }
 
@@ -160,6 +164,9 @@ class ZrePeer {
      * @param expiredTimeout Amount of time before peer is considered expired, in milliseconds
      */
     public void onPing(int evasiveTimeout, int expiredTimeout) {
+        assert state == State.READY
+            || state == State.EVASIVE
+            || state == State.EXPIRING;
         long now = System.currentTimeMillis();
         evasiveAt = now + evasiveTimeout;
         expiredAt = now + expiredTimeout;
@@ -170,11 +177,15 @@ class ZrePeer {
      */
     public void onWake() {
         long now = System.currentTimeMillis();
-        if (now >= expiredAt) {
-            state = State.EXPIRED;
-        } else if (state != State.EXPIRING) {
+        if (state == State.CONNECTED || state == State.READY) {
             if (now >= evasiveAt) {
                 state = State.EVASIVE;
+            }
+        } else if (state == State.EVASIVE) {
+            state = State.EXPIRING;
+        } else if (state == State.EXPIRING) {
+            if (now >= expiredAt) {
+                state = State.EXPIRED;
             }
         }
     }
@@ -183,6 +194,10 @@ class ZrePeer {
      * Set state to READY.
      */
     public void onReady() {
+        assert state == State.CONNECTED
+            || state == State.READY
+            || state == State.EVASIVE
+            || state == State.EXPIRING;
         state = State.READY;
     }
 
@@ -253,26 +268,12 @@ class ZrePeer {
     }
 
     /**
-     * Check if peer is in a CONNECTED state.
-     *
-     * @return true if peer's state is CONNECTED or greater, false otherwise
-     */
-    public boolean isConnected() {
-        boolean isConnected = state.ordinal() >= State.CONNECTED.ordinal();
-        if (isConnected) {
-            assert socket != null;
-        }
-
-        return isConnected;
-    }
-
-    /**
      * Check if peer is in a READY state.
      *
-     * @return true if peer's state is READY or greater, false otherwise
+     * @return true if peer's state is READY, false otherwise
      */
     public boolean isReady() {
-        return state.ordinal() >= State.READY.ordinal();
+        return state == State.READY;
     }
 
     /**
@@ -285,21 +286,7 @@ class ZrePeer {
      * @return true if peer's state is EVASIVE, false otherwise
      */
     public boolean isEvasive() {
-        boolean evasive = state == State.EVASIVE;
-        if (evasive) {
-            state = State.EXPIRING;
-        }
-
-        return evasive;
-    }
-
-    /**
-     * Check if peer is in an EXPIRING state.
-     *
-     * @return true if peer's state is EXPIRING, false otherwise
-     */
-    public boolean isExpiring() {
-        return state == State.EXPIRING;
+        return state == State.EVASIVE;
     }
 
     /**
@@ -309,6 +296,15 @@ class ZrePeer {
      */
     public boolean isExpired() {
         return state == State.EXPIRED;
+    }
+
+    /**
+     * Get peer state.
+     *
+     * @return The peer's state
+     */
+    public State getState() {
+        return state;
     }
 
     /**
