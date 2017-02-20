@@ -107,7 +107,7 @@ public class $(ClassName)Socket implements Closeable {
      * @param socket The internal socket
      */
     public $(ClassName)Socket(Socket socket) {
-        assert (socket != null);
+        assert socket != null;
         this.socket = socket;
     }
 
@@ -148,6 +148,8 @@ public class $(ClassName)Socket implements Closeable {
 
     /**
      * Receive a message on the socket.
+     *
+     * @return The MessageType of the received message
      */
     public MessageType receive() {
         int id = 0;
@@ -201,7 +203,7 @@ public class $(ClassName)Socket implements Closeable {
 .                endif
 .        elsif type = "octets"
                     message.$(java_var_name(name)) = needle.getBytes();
-                    assert (message.$(java_var_name(name)).length == $(size));
+                    assert message.$(java_var_name(name)).length == $(size);
 .            if defined(field.value)
                     if (message.$(java_var_name(name)) != $(field.value:)) {
                         throw new IllegalArgumentException();
@@ -255,6 +257,8 @@ public class $(ClassName)Socket implements Closeable {
 
     /**
      * Get a $(message.NAME) message from the socket.
+     *
+     * @return The $(java_class_name(name))Message last received on this socket
      */
     public $(java_class_name(name))Message get$(java_class_name(name))() {
         return $(java_var_name(message.name));
@@ -264,6 +268,9 @@ public class $(ClassName)Socket implements Closeable {
 
     /**
      * Send the $(message.NAME) to the socket in one step.
+     *
+     * @param message The message to send
+     * @return true if the message was sent, false otherwise
      */
     public boolean send($(java_class_name(name))Message message) {
         //  Now serialize message into the frame
@@ -316,7 +323,7 @@ public class $(ClassName)Socket implements Closeable {
         if (message.$(java_var_name(name)) != null) {
             builder.putMap(message.$(java_var_name(name)));
         } else {
-            builder.putInt(0);   //  Empty dictionary
+            builder.putInt(0);   //  Empty hash
         }
 .        endif
 .    endfor
@@ -326,7 +333,7 @@ public class $(ClassName)Socket implements Closeable {
 
         //  If we're sending to a ROUTER, we add the address first
         if (socket.getZMQSocket().getType() == ZMQ.ROUTER) {
-            assert (address != null);
+            assert address != null;
             frames.addFrame(address);
         }
 
@@ -571,9 +578,9 @@ public class $(MessageName)Message {
 .    elsif type = "hash"
 
     /**
-     * Get the the $(java_var_name(name)) dictionary.
+     * Get the the $(java_var_name(name)) hash.
      * 
-     * @return The $(java_var_name(name)) dictionary
+     * @return The $(java_var_name(name)) hash
      */
     public Map<String, String> get$(java_class_name(Name))() {
         if ($(java_var_name(name)) == null) {
@@ -583,10 +590,11 @@ public class $(MessageName)Message {
     }
 
     /**
-     * Get a value in the $(java_var_name(name)) dictionary as a string.
+     * Get a value in the $(java_var_name(name)) hash as a string.
      * 
-     * @param key The dictionary key
+     * @param key The hash key
      * @param defaultValue The default value if the key does not exist
+     * @return The hash value, or the default value if the key does not exist
      */
     public String get$(stem_s(java_class_name(Name)))(String key, String defaultValue) {
         String value = defaultValue;
@@ -597,10 +605,11 @@ public class $(MessageName)Message {
     }
 
     /**
-     * Get a value in the $(java_var_name(name)) dictionary as a long.
+     * Get a value in the $(java_var_name(name)) hash as a long.
      * 
-     * @param key The dictionary key
+     * @param key The hash key
      * @param defaultValue The default value if the key does not exist
+     * @return The hash value, or the default value if the key does not exist
      */
     public long get$(stem_s(java_class_name(Name)))(String key, long defaultValue) {
         long value = defaultValue;
@@ -611,10 +620,11 @@ public class $(MessageName)Message {
     }
 
     /**
-     * Get a value in the $(java_var_name(name)) dictionary as a long.
+     * Get a value in the $(java_var_name(name)) hash as a long.
      *
-     * @param key The dictionary key
+     * @param key The hash key
      * @param defaultValue The default value if the key does not exist
+     * @return The hash value, or the default value if the key does not exist
      */
     public int get$(stem_s(java_class_name(Name)))(String key, int defaultValue) {
         int value = defaultValue;
@@ -625,9 +635,9 @@ public class $(MessageName)Message {
     }
 
     /**
-     * Set a value in the $(java_var_name(name)) dictionary.
+     * Set a value in the $(java_var_name(name)) hash.
      *
-     * @param key The dictionary key
+     * @param key The hash key
      * @param value The value
      */
     public void put$(stem_s(java_class_name(Name)))(String key, String value) {
@@ -635,9 +645,9 @@ public class $(MessageName)Message {
     }
 
     /**
-     * Set a value in the $(java_var_name(name)) dictionary.
+     * Set a value in the $(java_var_name(name)) hash.
      *
-     * @param key The dictionary key
+     * @param key The hash key
      * @param value The value
      * @return The $(MessageName)Message, for method chaining
      */
@@ -647,9 +657,9 @@ public class $(MessageName)Message {
     }
 
     /**
-     * Set a value in the $(java_var_name(name)) dictionary.
+     * Set a value in the $(java_var_name(name)) hash.
      * 
-     * @param key The dictionary key
+     * @param key The hash key
      * @param value The value
      */
     public void put$(stem_s(java_class_name(Name)))(String key, int value) {
@@ -657,9 +667,9 @@ public class $(MessageName)Message {
     }
 
     /**
-     * Set a value in the $(java_var_name(name)) dictionary.
+     * Set a value in the $(java_var_name(name)) hash.
      *
-     * @param key The dictionary key
+     * @param key The hash key
      * @param value The value
      * @return The $(MessageName)Message, for method chaining
      */
@@ -669,9 +679,9 @@ public class $(MessageName)Message {
     }
 
     /**
-     * Set a value in the $(java_var_name(name)) dictionary.
+     * Set a value in the $(java_var_name(name)) hash.
      * 
-     * @param key The dictionary key
+     * @param key The hash key
      * @param value The value
      */
     public void put$(stem_s(java_class_name(Name)))(String key, long value) {
@@ -679,9 +689,9 @@ public class $(MessageName)Message {
     }
 
     /**
-     * Set a value in the $(java_var_name(name)) dictionary.
+     * Set a value in the $(java_var_name(name)) hash.
      *
-     * @param key The dictionary key
+     * @param key The hash key
      * @param value The value
      * @return The $(MessageName)Message, for method chaining
      */
@@ -691,18 +701,18 @@ public class $(MessageName)Message {
     }
 
     /**
-     * Set the $(java_var_name(name)) dictionary.
+     * Set the $(java_var_name(name)) hash.
      * 
-     * @param $(java_var_name(name)) The new $(java_var_name(name)) dictionary
+     * @param $(java_var_name(name)) The new $(java_var_name(name)) hash
      */
     public void set$(java_class_name(Name))(Map<String, String> $(java_var_name(name))) {
         this.$(java_var_name(name)) = $(java_var_name(name));
     }
 
     /**
-     * Set the $(java_var_name(name)) dictionary.
+     * Set the $(java_var_name(name)) hash.
      *
-     * @param $(java_var_name(name)) The new $(java_var_name(name)) dictionary
+     * @param $(java_var_name(name)) The new $(java_var_name(name)) hash
      * @return The $(MessageName)Message, for method chaining
      */
     public $(MessageName)Message with$(java_class_name(Name))(Map<String, String> $(java_var_name(name))) {

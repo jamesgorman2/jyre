@@ -78,7 +78,7 @@ public class ZreLogSocket implements Closeable {
      * @param socket The internal socket
      */
     public ZreLogSocket(Socket socket) {
-        assert (socket != null);
+        assert socket != null;
         this.socket = socket;
     }
 
@@ -119,6 +119,8 @@ public class ZreLogSocket implements Closeable {
 
     /**
      * Receive a message on the socket.
+     *
+     * @return The MessageType of the received message
      */
     public MessageType receive() {
         int id = 0;
@@ -176,6 +178,8 @@ public class ZreLogSocket implements Closeable {
 
     /**
      * Get a LOG message from the socket.
+     *
+     * @return The LogMessage last received on this socket
      */
     public LogMessage getLog() {
         return log;
@@ -183,6 +187,9 @@ public class ZreLogSocket implements Closeable {
 
     /**
      * Send the LOG to the socket in one step.
+     *
+     * @param message The message to send
+     * @return true if the message was sent, false otherwise
      */
     public boolean send(LogMessage message) {
         //  Now serialize message into the frame
@@ -206,7 +213,7 @@ public class ZreLogSocket implements Closeable {
 
         //  If we're sending to a ROUTER, we add the address first
         if (socket.getZMQSocket().getType() == ZMQ.ROUTER) {
-            assert (address != null);
+            assert address != null;
             frames.addFrame(address);
         }
 

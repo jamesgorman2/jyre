@@ -107,7 +107,7 @@ public class ZreSocket implements Closeable {
      * @param socket The internal socket
      */
     public ZreSocket(Socket socket) {
-        assert (socket != null);
+        assert socket != null;
         this.socket = socket;
     }
 
@@ -148,6 +148,8 @@ public class ZreSocket implements Closeable {
 
     /**
      * Receive a message on the socket.
+     *
+     * @return The MessageType of the received message
      */
     public MessageType receive() {
         int id = 0;
@@ -280,6 +282,8 @@ public class ZreSocket implements Closeable {
 
     /**
      * Get a HELLO message from the socket.
+     *
+     * @return The HelloMessage last received on this socket
      */
     public HelloMessage getHello() {
         return hello;
@@ -287,6 +291,8 @@ public class ZreSocket implements Closeable {
 
     /**
      * Get a WHISPER message from the socket.
+     *
+     * @return The WhisperMessage last received on this socket
      */
     public WhisperMessage getWhisper() {
         return whisper;
@@ -294,6 +300,8 @@ public class ZreSocket implements Closeable {
 
     /**
      * Get a SHOUT message from the socket.
+     *
+     * @return The ShoutMessage last received on this socket
      */
     public ShoutMessage getShout() {
         return shout;
@@ -301,6 +309,8 @@ public class ZreSocket implements Closeable {
 
     /**
      * Get a JOIN message from the socket.
+     *
+     * @return The JoinMessage last received on this socket
      */
     public JoinMessage getJoin() {
         return join;
@@ -308,6 +318,8 @@ public class ZreSocket implements Closeable {
 
     /**
      * Get a LEAVE message from the socket.
+     *
+     * @return The LeaveMessage last received on this socket
      */
     public LeaveMessage getLeave() {
         return leave;
@@ -315,6 +327,8 @@ public class ZreSocket implements Closeable {
 
     /**
      * Get a PING message from the socket.
+     *
+     * @return The PingMessage last received on this socket
      */
     public PingMessage getPing() {
         return ping;
@@ -322,6 +336,8 @@ public class ZreSocket implements Closeable {
 
     /**
      * Get a PING_OK message from the socket.
+     *
+     * @return The PingOkMessage last received on this socket
      */
     public PingOkMessage getPingOk() {
         return pingOk;
@@ -329,6 +345,9 @@ public class ZreSocket implements Closeable {
 
     /**
      * Send the HELLO to the socket in one step.
+     *
+     * @param message The message to send
+     * @return true if the message was sent, false otherwise
      */
     public boolean send(HelloMessage message) {
         //  Now serialize message into the frame
@@ -357,7 +376,7 @@ public class ZreSocket implements Closeable {
         if (message.headers != null) {
             builder.putMap(message.headers);
         } else {
-            builder.putInt(0);   //  Empty dictionary
+            builder.putInt(0);   //  Empty hash
         }
 
         //  Create multi-frame message
@@ -365,7 +384,7 @@ public class ZreSocket implements Closeable {
 
         //  If we're sending to a ROUTER, we add the address first
         if (socket.getZMQSocket().getType() == ZMQ.ROUTER) {
-            assert (address != null);
+            assert address != null;
             frames.addFrame(address);
         }
 
@@ -377,6 +396,9 @@ public class ZreSocket implements Closeable {
 
     /**
      * Send the WHISPER to the socket in one step.
+     *
+     * @param message The message to send
+     * @return true if the message was sent, false otherwise
      */
     public boolean send(WhisperMessage message) {
         //  Now serialize message into the frame
@@ -392,7 +414,7 @@ public class ZreSocket implements Closeable {
 
         //  If we're sending to a ROUTER, we add the address first
         if (socket.getZMQSocket().getType() == ZMQ.ROUTER) {
-            assert (address != null);
+            assert address != null;
             frames.addFrame(address);
         }
 
@@ -407,6 +429,9 @@ public class ZreSocket implements Closeable {
 
     /**
      * Send the SHOUT to the socket in one step.
+     *
+     * @param message The message to send
+     * @return true if the message was sent, false otherwise
      */
     public boolean send(ShoutMessage message) {
         //  Now serialize message into the frame
@@ -427,7 +452,7 @@ public class ZreSocket implements Closeable {
 
         //  If we're sending to a ROUTER, we add the address first
         if (socket.getZMQSocket().getType() == ZMQ.ROUTER) {
-            assert (address != null);
+            assert address != null;
             frames.addFrame(address);
         }
 
@@ -442,6 +467,9 @@ public class ZreSocket implements Closeable {
 
     /**
      * Send the JOIN to the socket in one step.
+     *
+     * @param message The message to send
+     * @return true if the message was sent, false otherwise
      */
     public boolean send(JoinMessage message) {
         //  Now serialize message into the frame
@@ -463,7 +491,7 @@ public class ZreSocket implements Closeable {
 
         //  If we're sending to a ROUTER, we add the address first
         if (socket.getZMQSocket().getType() == ZMQ.ROUTER) {
-            assert (address != null);
+            assert address != null;
             frames.addFrame(address);
         }
 
@@ -475,6 +503,9 @@ public class ZreSocket implements Closeable {
 
     /**
      * Send the LEAVE to the socket in one step.
+     *
+     * @param message The message to send
+     * @return true if the message was sent, false otherwise
      */
     public boolean send(LeaveMessage message) {
         //  Now serialize message into the frame
@@ -496,7 +527,7 @@ public class ZreSocket implements Closeable {
 
         //  If we're sending to a ROUTER, we add the address first
         if (socket.getZMQSocket().getType() == ZMQ.ROUTER) {
-            assert (address != null);
+            assert address != null;
             frames.addFrame(address);
         }
 
@@ -508,6 +539,9 @@ public class ZreSocket implements Closeable {
 
     /**
      * Send the PING to the socket in one step.
+     *
+     * @param message The message to send
+     * @return true if the message was sent, false otherwise
      */
     public boolean send(PingMessage message) {
         //  Now serialize message into the frame
@@ -523,7 +557,7 @@ public class ZreSocket implements Closeable {
 
         //  If we're sending to a ROUTER, we add the address first
         if (socket.getZMQSocket().getType() == ZMQ.ROUTER) {
-            assert (address != null);
+            assert address != null;
             frames.addFrame(address);
         }
 
@@ -535,6 +569,9 @@ public class ZreSocket implements Closeable {
 
     /**
      * Send the PING_OK to the socket in one step.
+     *
+     * @param message The message to send
+     * @return true if the message was sent, false otherwise
      */
     public boolean send(PingOkMessage message) {
         //  Now serialize message into the frame
@@ -550,7 +587,7 @@ public class ZreSocket implements Closeable {
 
         //  If we're sending to a ROUTER, we add the address first
         if (socket.getZMQSocket().getType() == ZMQ.ROUTER) {
-            assert (address != null);
+            assert address != null;
             frames.addFrame(address);
         }
 

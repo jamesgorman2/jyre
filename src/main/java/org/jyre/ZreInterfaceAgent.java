@@ -155,9 +155,9 @@ class ZreInterfaceAgent implements Backgroundable, ZreConstants {
 
         reactor.build().stop();
         logger.close();
-        zre.close();
         outbox.close();
         pipe.close();
+        zre.close();
         udp.close();
     }
 
@@ -167,9 +167,9 @@ class ZreInterfaceAgent implements Backgroundable, ZreConstants {
             peer = new ZrePeer(context, identity);
 
             // Check for other peers on this endpoint
-            for (ZrePeer other : peers.values()) {
-                if (other.getEndpoint().equals(this.endpoint)) {
-                    other.disconnect();
+            for (ZrePeer other : new ArrayList<>(peers.values())) {
+                if (other.getEndpoint().equals(endpoint)) {
+                    removeZrePeer(other);
                 }
             }
 
@@ -192,15 +192,17 @@ class ZreInterfaceAgent implements Backgroundable, ZreConstants {
     }
 
     private void removeZrePeer(ZrePeer peer) {
-        peer.disconnect();
-        peers.remove(peer.getIdentity());
+        if (peer.isConnected()) {
+            peer.disconnect();
+        }
 
+        peers.remove(peer.getIdentity());
         for (ZreGroup group : peerGroups.values()) {
             peer.leave(group);
         }
 
         logger.info(ZreLogger.Event.EXIT, peer.getIdentity(), "Peer %s disconnected from %s", peer.getIdentity(), this.identity);
-        outbox.send(new Message(EXIT).addString(peer.getIdentity()).addString(peer.getName()));
+        outbox.send(new Message(EXIT).addString(peer.getIdentity()).addString(peer.getName() != null ? peer.getName() : peer.getIdentity()));
     }
 
     private ZreGroup getZreGroup(String name) {
@@ -509,6 +511,7 @@ class ZreInterfaceAgent implements Backgroundable, ZreConstants {
             String identity = zre.getAddress().getString();
             ZrePeer peer = peers.get(identity);
             if (messageType == ZreSocket.MessageType.HELLO) {
+                System.out.printf("%s %s\n", identity, zre.getHello().getName());
                 // On HELLO we may create the peer if it's unknown
                 // On other commands the peer must already exist
                 peer = getZrePeer(identity, zre.getHello().getEndpoint());
@@ -692,8 +695,7 @@ class ZreInterfaceAgent implements Backgroundable, ZreConstants {
         }
 
         private void pingPeers() {
-            List<ZrePeer> listOfPeers = new ArrayList<>(peers.values());
-            for (ZrePeer peer : listOfPeers) {
+            for (ZrePeer peer : new ArrayList<>(peers.values())) {
                 String identity = peer.getIdentity();
                 peer.onWake();
 

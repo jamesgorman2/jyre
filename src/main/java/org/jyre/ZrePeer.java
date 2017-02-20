@@ -30,37 +30,51 @@ class ZrePeer {
 
     public void send(HelloMessage message) {
         if (!isConnected()) return;
-        if (!socket.send(message.withSequence(incrementSentSequence()))) disconnect();
+        if (!socket.send(message.withSequence(incrementSentSequence()))) {
+            disconnect();
+        }
     }
 
     public void send(JoinMessage message) {
         if (!isConnected()) return;
-        if (!socket.send(message.withSequence(incrementSentSequence()))) disconnect();
+        if (!socket.send(message.withSequence(incrementSentSequence()))) {
+            disconnect();
+        }
     }
 
     public void send(LeaveMessage message) {
         if (!isConnected()) return;
-        if (!socket.send(message.withSequence(incrementSentSequence()))) disconnect();
+        if (!socket.send(message.withSequence(incrementSentSequence()))) {
+            disconnect();
+        }
     }
 
     public void send(PingMessage message) {
         if (!isConnected()) return;
-        if (!socket.send(message.withSequence(incrementSentSequence()))) disconnect();
+        if (!socket.send(message.withSequence(incrementSentSequence()))) {
+            disconnect();
+        }
     }
 
     public void send(PingOkMessage message) {
         if (!isConnected()) return;
-        if (!socket.send(message.withSequence(incrementSentSequence()))) disconnect();
+        if (!socket.send(message.withSequence(incrementSentSequence()))) {
+            disconnect();
+        }
     }
 
     public void send(ShoutMessage message) {
         if (!isConnected()) return;
-        if (!socket.send(message.withSequence(incrementSentSequence()))) disconnect();
+        if (!socket.send(message.withSequence(incrementSentSequence()))) {
+            disconnect();
+        }
     }
 
     public void send(WhisperMessage message) {
         if (!isConnected()) return;
-        if (!socket.send(message.withSequence(incrementSentSequence()))) disconnect();
+        if (!socket.send(message.withSequence(incrementSentSequence()))) {
+            disconnect();
+        }
     }
 
     /**
@@ -244,7 +258,12 @@ class ZrePeer {
      * @return true if peer's state is CONNECTED or greater, false otherwise
      */
     public boolean isConnected() {
-        return state.ordinal() >= State.CONNECTED.ordinal();
+        boolean isConnected = state.ordinal() >= State.CONNECTED.ordinal();
+        if (isConnected) {
+            assert socket != null;
+        }
+
+        return isConnected;
     }
 
     /**

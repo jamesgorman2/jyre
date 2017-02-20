@@ -213,9 +213,9 @@ public class HelloMessage {
     }
 
     /**
-     * Get the the headers dictionary.
+     * Get the the headers hash.
      * 
-     * @return The headers dictionary
+     * @return The headers hash
      */
     public Map<String, String> getHeaders() {
         if (headers == null) {
@@ -225,10 +225,11 @@ public class HelloMessage {
     }
 
     /**
-     * Get a value in the headers dictionary as a string.
+     * Get a value in the headers hash as a string.
      * 
-     * @param key The dictionary key
+     * @param key The hash key
      * @param defaultValue The default value if the key does not exist
+     * @return The hash value, or the default value if the key does not exist
      */
     public String getHeader(String key, String defaultValue) {
         String value = defaultValue;
@@ -239,10 +240,11 @@ public class HelloMessage {
     }
 
     /**
-     * Get a value in the headers dictionary as a long.
+     * Get a value in the headers hash as a long.
      * 
-     * @param key The dictionary key
+     * @param key The hash key
      * @param defaultValue The default value if the key does not exist
+     * @return The hash value, or the default value if the key does not exist
      */
     public long getHeader(String key, long defaultValue) {
         long value = defaultValue;
@@ -253,10 +255,11 @@ public class HelloMessage {
     }
 
     /**
-     * Get a value in the headers dictionary as a long.
+     * Get a value in the headers hash as a long.
      *
-     * @param key The dictionary key
+     * @param key The hash key
      * @param defaultValue The default value if the key does not exist
+     * @return The hash value, or the default value if the key does not exist
      */
     public int getHeader(String key, int defaultValue) {
         int value = defaultValue;
@@ -267,9 +270,9 @@ public class HelloMessage {
     }
 
     /**
-     * Set a value in the headers dictionary.
+     * Set a value in the headers hash.
      *
-     * @param key The dictionary key
+     * @param key The hash key
      * @param value The value
      */
     public void putHeader(String key, String value) {
@@ -277,9 +280,9 @@ public class HelloMessage {
     }
 
     /**
-     * Set a value in the headers dictionary.
+     * Set a value in the headers hash.
      *
-     * @param key The dictionary key
+     * @param key The hash key
      * @param value The value
      * @return The HelloMessage, for method chaining
      */
@@ -289,9 +292,9 @@ public class HelloMessage {
     }
 
     /**
-     * Set a value in the headers dictionary.
+     * Set a value in the headers hash.
      * 
-     * @param key The dictionary key
+     * @param key The hash key
      * @param value The value
      */
     public void putHeader(String key, int value) {
@@ -299,9 +302,9 @@ public class HelloMessage {
     }
 
     /**
-     * Set a value in the headers dictionary.
+     * Set a value in the headers hash.
      *
-     * @param key The dictionary key
+     * @param key The hash key
      * @param value The value
      * @return The HelloMessage, for method chaining
      */
@@ -311,9 +314,9 @@ public class HelloMessage {
     }
 
     /**
-     * Set a value in the headers dictionary.
+     * Set a value in the headers hash.
      * 
-     * @param key The dictionary key
+     * @param key The hash key
      * @param value The value
      */
     public void putHeader(String key, long value) {
@@ -321,9 +324,9 @@ public class HelloMessage {
     }
 
     /**
-     * Set a value in the headers dictionary.
+     * Set a value in the headers hash.
      *
-     * @param key The dictionary key
+     * @param key The hash key
      * @param value The value
      * @return The HelloMessage, for method chaining
      */
@@ -333,18 +336,18 @@ public class HelloMessage {
     }
 
     /**
-     * Set the headers dictionary.
+     * Set the headers hash.
      * 
-     * @param headers The new headers dictionary
+     * @param headers The new headers hash
      */
     public void setHeaders(Map<String, String> headers) {
         this.headers = headers;
     }
 
     /**
-     * Set the headers dictionary.
+     * Set the headers hash.
      *
-     * @param headers The new headers dictionary
+     * @param headers The new headers hash
      * @return The HelloMessage, for method chaining
      */
     public HelloMessage withHeaders(Map<String, String> headers) {
