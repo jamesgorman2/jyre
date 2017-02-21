@@ -20,13 +20,15 @@ import java.util.Map;
 import java.util.UUID;
 
 class ZreInterfaceAgent implements Backgroundable, ZreConstants {
-    public static final Message.Frame ENTER = new Message.Frame("ENTER");
-    public static final Message.Frame JOIN = new Message.Frame("JOIN");
-    public static final Message.Frame WHISPER = new Message.Frame("WHISPER");
-    public static final Message.Frame SHOUT = new Message.Frame("SHOUT");
-    public static final Message.Frame LEAVE = new Message.Frame("LEAVE");
-    public static final Message.Frame EXIT = new Message.Frame("EXIT");
-    public static final Message.Frame EVASIVE = new Message.Frame("EVASIVE");
+    private static final Message.Frame ENTER   = new Message.Frame("ENTER");
+    private static final Message.Frame JOIN    = new Message.Frame("JOIN");
+    private static final Message.Frame WHISPER = new Message.Frame("WHISPER");
+    private static final Message.Frame SHOUT   = new Message.Frame("SHOUT");
+    private static final Message.Frame LEAVE   = new Message.Frame("LEAVE");
+    private static final Message.Frame EXIT    = new Message.Frame("EXIT");
+    private static final Message.Frame EVASIVE = new Message.Frame("EVASIVE");
+    private static final Message.Frame OK      = new Message.Frame("OK");
+    private static final Message.Frame ERROR   = new Message.Frame("ERROR");
 
     private Context context;
     private Socket pipe;
@@ -70,7 +72,12 @@ class ZreInterfaceAgent implements Backgroundable, ZreConstants {
     /**
      * Flag to specify whether verbose output is enabled or not.
      */
-    private boolean verbose;
+    private boolean verbose = false;
+
+    /**
+     * Flag to specify whether beacons are enabled or not.
+     */
+    private boolean beacons = true;
 
     /**
      * Amount of time before peer is considered evasive, in milliseconds.
@@ -237,6 +244,9 @@ class ZreInterfaceAgent implements Backgroundable, ZreConstants {
                 case "SET VERBOSE":
                     onSetVerbose();
                     break;
+                case "DISABLE BEACONS":
+                    onDisableBeacons();
+                    break;
                 case "SET PORT":
                     onSetPort(message);
                     break;
@@ -282,17 +292,20 @@ class ZreInterfaceAgent implements Backgroundable, ZreConstants {
                 case "STOP":
                     stop();
                     break;
-                case "WHISPER":
-                    onWhisper(message);
-                    break;
-                case "SHOUT":
-                    onShout(message);
+                case "CONNECT":
+                    onConnect(message);
                     break;
                 case "JOIN":
                     onJoin(message);
                     break;
                 case "LEAVE":
                     onLeave(message);
+                    break;
+                case "WHISPER":
+                    onWhisper(message);
+                    break;
+                case "SHOUT":
+                    onShout(message);
                     break;
                 case "PUBLISH":
                     onPublish(message);
@@ -318,6 +331,10 @@ class ZreInterfaceAgent implements Backgroundable, ZreConstants {
 
         private void onSetVerbose() {
             verbose = true;
+        }
+
+        private void onDisableBeacons() {
+            beacons = false;
         }
 
         private void onSetPort(Message message) {
@@ -423,29 +440,18 @@ class ZreInterfaceAgent implements Backgroundable, ZreConstants {
             pipe.send(new Message().addStrings(new ArrayList<>(ownGroups.keySet())));
         }
 
-        private void onWhisper(Message message) {
-            // Get peer to send message to
-            String identity = message.popString();
-            ZrePeer peer = peers.get(identity);
+        private void onConnect(Message message) {
+            String address = message.popString();
+            try {
+                // Send UDP beacon to specific address (not on this network)
+                udp.send(beacon.getBuffer(), address);
+                pipe.send(new Message(OK));
+            } catch (IOException ex) {
+                if (verbose) {
+                    System.err.println("E: Unable to send UDP beacon");
+                }
 
-            // Send frame on out to peer's mailbox, drop message
-            // if peer doesn't exist (may have been destroyed)
-            if (peer != null) {
-                WhisperMessage whisper = new WhisperMessage().withContent(message.popFrame());
-                peer.send(whisper);
-            }
-        }
-
-        private void onShout(Message message) {
-            // Get group to send message to
-            String name = message.popString();
-            ZreGroup group = peerGroups.get(name);
-
-            // Send frame on out to group's mailbox, drop message
-            // if group doesn't exist (may have been destroyed)
-            if (group != null) {
-                ShoutMessage shout = new ShoutMessage().withGroup(name).withContent(message.popFrame());
-                group.send(shout);
+                pipe.send(new Message(ERROR));
             }
         }
 
@@ -483,6 +489,32 @@ class ZreInterfaceAgent implements Backgroundable, ZreConstants {
             }
         }
 
+        private void onWhisper(Message message) {
+            // Get peer to send message to
+            String identity = message.popString();
+            ZrePeer peer = peers.get(identity);
+
+            // Send frame on out to peer's mailbox, drop message
+            // if peer doesn't exist (may have been destroyed)
+            if (peer != null) {
+                WhisperMessage whisper = new WhisperMessage().withContent(message.popFrame());
+                peer.send(whisper);
+            }
+        }
+
+        private void onShout(Message message) {
+            // Get group to send message to
+            String name = message.popString();
+            ZreGroup group = peerGroups.get(name);
+
+            // Send frame on out to group's mailbox, drop message
+            // if group doesn't exist (may have been destroyed)
+            if (group != null) {
+                ShoutMessage shout = new ShoutMessage().withGroup(name).withContent(message.popFrame());
+                group.send(shout);
+            }
+        }
+
         private void onPublish(Message message) {
             // TODO: Support FileMQ
         }
@@ -511,6 +543,11 @@ class ZreInterfaceAgent implements Backgroundable, ZreConstants {
                 // On other commands the peer must already exist
                 peer = getZrePeer(identity, zre.getHello().getEndpoint());
                 peer.onReady();
+            } else if (messageType == ZreSocket.MessageType.PING_OK) {
+                // On PING-OK we may set the peer from EVASIVE back to READY
+                if (peer != null) {
+                    peer.onReady();
+                }
             }
 
             // Ignore command if peer isn't ready
@@ -607,9 +644,6 @@ class ZreInterfaceAgent implements Backgroundable, ZreConstants {
         private void onPingOk(ZrePeer peer) {
             PingOkMessage pingOk = zre.getPingOk();
             checkSequence(peer, pingOk.getSequence());
-
-            // PING-OK sets peer from EVASIVE back to READY
-            peer.onReady();
         }
 
         private void onJoin(ZrePeer peer) {
@@ -694,11 +728,13 @@ class ZreInterfaceAgent implements Backgroundable, ZreConstants {
         }
 
         private void sendUdpBeacon() {
-            try {
-                udp.send(beacon.getBuffer());
-            } catch (IOException ex) {
-                if (verbose) {
-                    System.err.println("E: Unable to send UDP beacon");
+            if (beacons) {
+                try {
+                    udp.send(beacon.getBuffer());
+                } catch (IOException ex) {
+                    if (verbose) {
+                        System.err.println("E: Unable to send UDP beacon");
+                    }
                 }
             }
         }
