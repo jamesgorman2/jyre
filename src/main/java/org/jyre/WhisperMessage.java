@@ -27,6 +27,7 @@ package org.jyre;
 
 import org.zeromq.api.Message;
 import org.zeromq.api.Message.Frame;
+import org.zeromq.api.Message.FrameBuilder;
 
 /**
  * WhisperMessage class.
@@ -94,5 +95,55 @@ public class WhisperMessage {
     public WhisperMessage withContent(Frame frame) {
         this.content = frame;
         return this;
+    }
+
+    /**
+     * Serialize the WHISPER message.
+     *
+     * @return The serialized message
+     */
+    public Message toMessage() {
+        //  Serialize message into the frame
+        FrameBuilder builder = new FrameBuilder();
+        builder.putShort((short) (0xAAA0 | 1));
+        builder.putByte((byte) 2);       //  Message ID
+
+        builder.putByte((byte) 2);
+        builder.putShort((short) (int) sequence);
+
+        //  Create multi-frame message
+        Message frames = new Message();
+
+        //  Now add the data frame
+        frames.addFrame(builder.build());
+
+        //  Now add any frame fields, in order
+        frames.addFrame(content);
+
+        return frames;
+    }
+
+    /**
+     * Create a new WHISPER message.
+     *
+     * @param frames The message frames
+     * @return The deserialized message
+     */
+    public static WhisperMessage fromMessage(Message frames) {
+        WhisperMessage message = new WhisperMessage();
+        Frame needle = frames.popFrame();
+        message.version = (0xff) & needle.getByte();
+        if (message.version != 2) {
+            throw new IllegalArgumentException();
+        }
+        message.sequence = (0xffff) & needle.getShort();
+        //  Get next frame, leave current untouched
+        if (!frames.isEmpty()) {
+            message.content = frames.popFrame();
+        } else {
+            throw new IllegalArgumentException("Invalid message: missing frame: content");
+        }
+
+        return message;
     }
 }

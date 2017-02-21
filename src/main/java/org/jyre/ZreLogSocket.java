@@ -28,7 +28,6 @@ package org.jyre;
 import org.zeromq.ZMQ;
 import org.zeromq.api.Message;
 import org.zeromq.api.Message.Frame;
-import org.zeromq.api.Message.FrameBuilder;
 import org.zeromq.api.Socket;
 
 import java.io.Closeable;
@@ -139,12 +138,12 @@ public class ZreLogSocket implements Closeable {
                 }
 
                 //  Read and parse command in frame
-                needle = frames.popFrame();
+                needle = frames.getFirstFrame();
 
                 //  Get and check protocol signature
                 int signature = (0xffff) & needle.getShort();
                 if (signature == (0xAAA0 | 2))
-                    break;                //  Valid signature
+                    break;               //  Valid signature
 
                 //  Protocol assertion, drop message
             }
@@ -153,16 +152,9 @@ public class ZreLogSocket implements Closeable {
             id = (0xff) & needle.getByte();
             type = MessageType.values()[id-1];
             switch (type) {
-                case LOG: {
-                    LogMessage message = this.log = new LogMessage();
-                    message.level = (0xff) & needle.getByte();
-                    message.event = (0xff) & needle.getByte();
-                    message.node = (0xffff) & needle.getShort();
-                    message.peer = (0xffff) & needle.getShort();
-                    message.time = needle.getLong();
-                    message.data = needle.getChars();
+                case LOG:
+                    this.log = LogMessage.fromMessage(frames);
                     break;
-                }
                 default:
                     throw new IllegalArgumentException("Invalid message: unrecognized type: " + type);
             }
@@ -192,33 +184,14 @@ public class ZreLogSocket implements Closeable {
      * @return true if the message was sent, false otherwise
      */
     public boolean send(LogMessage message) {
-        //  Now serialize message into the frame
-        FrameBuilder builder = new FrameBuilder();
-        builder.putShort((short) (0xAAA0 | 2));
-        builder.putByte((byte) 1);       //  Message ID
-
-        builder.putByte((byte) (int) message.level);
-        builder.putByte((byte) (int) message.event);
-        builder.putShort((short) (int) message.node);
-        builder.putShort((short) (int) message.peer);
-        builder.putLong(message.time);
-        if (message.data != null) {
-            builder.putString(message.data);
-        } else {
-            builder.putString("");        //  Empty string
-        }
-
         //  Create multi-frame message
-        Message frames = new Message();
+        Message frames = message.toMessage();
 
         //  If we're sending to a ROUTER, we add the address first
         if (socket.getZMQSocket().getType() == ZMQ.ROUTER) {
             assert address != null;
-            frames.addFrame(address);
+            frames.pushFrame(address);
         }
-
-        //  Now add the data frame
-        frames.addFrame(builder.build());
 
         return socket.send(frames);
     }

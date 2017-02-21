@@ -11,6 +11,7 @@ public class ZreInterfaceTest {
         @Override
         public void run() {
             ZreInterface inf = new ZreInterface();
+            inf.start();
 
             while (true) {
                 Message incoming = inf.receive();
@@ -86,6 +87,7 @@ public class ZreInterfaceTest {
         ping.start();
 
         ZreInterface inf = new ZreInterface();
+        inf.start();
 
         Message incoming = inf.receive();
 
@@ -121,6 +123,7 @@ public class ZreInterfaceTest {
         ping.start();
 
         ZreInterface inf = new ZreInterface();
+        inf.start();
         inf.join(group);
 
         Message incoming = inf.receive();
@@ -170,6 +173,7 @@ public class ZreInterfaceTest {
         ping2.start();
 
         ZreInterface inf = new ZreInterface();
+        inf.start();
 
         assertThat(inf.receive().popString(), is("ENTER"));
         assertThat(inf.receive().popString(), is("ENTER"));
@@ -203,6 +207,7 @@ public class ZreInterfaceTest {
         ping.start();
 
         ZreInterface inf = new ZreInterface();
+        inf.start();
 
         Message incoming = inf.receive();
 

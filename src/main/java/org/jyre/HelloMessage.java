@@ -25,6 +25,10 @@
  */
 package org.jyre;
 
+import org.zeromq.api.Message;
+import org.zeromq.api.Message.Frame;
+import org.zeromq.api.Message.FrameBuilder;
+
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -353,5 +357,72 @@ public class HelloMessage {
     public HelloMessage withHeaders(Map<String, String> headers) {
         this.headers = headers;
         return this;
+    }
+
+    /**
+     * Serialize the HELLO message.
+     *
+     * @return The serialized message
+     */
+    public Message toMessage() {
+        //  Serialize message into the frame
+        FrameBuilder builder = new FrameBuilder();
+        builder.putShort((short) (0xAAA0 | 1));
+        builder.putByte((byte) 1);       //  Message ID
+
+        builder.putByte((byte) 2);
+        builder.putShort((short) (int) sequence);
+        if (endpoint != null) {
+            builder.putString(endpoint);
+        } else {
+            builder.putString("");       //  Empty string
+        }
+        if (groups != null) {
+            builder.putClobs(groups);
+        } else {
+            builder.putInt(0);           //  Empty string array
+        }
+        builder.putByte((byte) (int) status);
+        if (name != null) {
+            builder.putString(name);
+        } else {
+            builder.putString("");       //  Empty string
+        }
+        if (headers != null) {
+            builder.putMap(headers);
+        } else {
+            builder.putInt(0);           //  Empty hash
+        }
+
+        //  Create multi-frame message
+        Message frames = new Message();
+
+        //  Now add the data frame
+        frames.addFrame(builder.build());
+
+        return frames;
+    }
+
+    /**
+     * Create a new HELLO message.
+     *
+     * @param frames The message frames
+     * @return The deserialized message
+     */
+    public static HelloMessage fromMessage(Message frames) {
+        HelloMessage message = new HelloMessage();
+        Frame needle = frames.popFrame();
+        message.version = (0xff) & needle.getByte();
+        if (message.version != 2) {
+            throw new IllegalArgumentException();
+        }
+        message.sequence = (0xffff) & needle.getShort();
+        message.endpoint = needle.getChars();
+        message.groups = needle.getClobs();
+        message.status = (0xff) & needle.getByte();
+        message.name = needle.getChars();
+        message.headers = needle.getMap();
+
+        return message;
     }
 }
