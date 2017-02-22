@@ -32,10 +32,8 @@ public class ZreInterfaceTest {
                         String msg = incoming.popString();
 
                         if (msg.equals("HELLO")) {
-                            Message outgoing = new Message();
-                            outgoing.addString(peer);
-                            outgoing.addString("WORLD");
-                            inf.whisper(outgoing);
+                            Message outgoing = new Message("WORLD");
+                            inf.whisper(peer, outgoing);
                         }
 
                         if (msg.equals("QUIT")) {
@@ -50,10 +48,8 @@ public class ZreInterfaceTest {
                         String msg = incoming.popString();
 
                         if (msg.equals("HELLO")) {
-                            Message outgoing = new Message();
-                            outgoing.addString(identity);
-                            outgoing.addString("WORLD");
-                            inf.whisper(outgoing);
+                            Message outgoing = new Message("WORLD");
+                            inf.whisper(identity, outgoing);
                         }
 
                         if (msg.equals("QUIT")) {
@@ -95,10 +91,8 @@ public class ZreInterfaceTest {
         assertThat(event, is("ENTER"));
         String peer = incoming.popString();
 
-        Message outgoing = new Message();
-        outgoing.addString(peer);
-        outgoing.addString("HELLO");
-        inf.whisper(outgoing);
+        Message outgoing = new Message("HELLO");
+        inf.whisper(peer, outgoing);
 
         incoming = inf.receive();
         event = incoming.popString();
@@ -106,10 +100,8 @@ public class ZreInterfaceTest {
         assertThat(incoming.popString(), is(peer));
         assertThat(incoming.popString(), is("WORLD"));
 
-        outgoing = new Message();
-        outgoing.addString(peer);
-        outgoing.addString("QUIT");
-        inf.whisper(outgoing);
+        outgoing = new Message("QUIT");
+        inf.whisper(peer, outgoing);
 
         ping.join();
         inf.close();
@@ -136,10 +128,8 @@ public class ZreInterfaceTest {
         event = incoming.popString();
         assertThat(event, is("JOIN"));
 
-        Message outgoing = new Message();
-        outgoing.addString(group);
-        outgoing.addString("HELLO");
-        inf.shout(outgoing);
+        Message outgoing = new Message("HELLO");
+        inf.shout(group, outgoing);
 
         incoming = inf.receive();
         event = incoming.popString();
@@ -153,10 +143,8 @@ public class ZreInterfaceTest {
         event = incoming.popString();
         assertThat(event, is("LEAVE"));
 
-        outgoing = new Message();
-        outgoing.addString(peer);
-        outgoing.addString("QUIT");
-        inf.whisper(outgoing);
+        outgoing = new Message("QUIT");
+        inf.whisper(peer, outgoing);
 
         ping.join();
         inf.close();
@@ -183,18 +171,14 @@ public class ZreInterfaceTest {
         assertThat(inf.receive().popString(), is("JOIN"));
         assertThat(inf.receive().popString(), is("JOIN"));
 
-        Message outgoing = new Message();
-        outgoing.addString(group);
-        outgoing.addString("HELLO");
-        inf.shout(outgoing);
+        Message outgoing = new Message("HELLO");
+        inf.shout(group, outgoing);
 
         assertThat(inf.receive().popString(), is("WHISPER"));
         assertThat(inf.receive().popString(), is("WHISPER"));
 
-        outgoing = new Message();
-        outgoing.addString(group);
-        outgoing.addString("QUIT");
-        inf.shout(outgoing);
+        outgoing = new Message("QUIT");
+        inf.shout(group, outgoing);
 
         ping.join();
         ping2.join();
@@ -215,15 +199,11 @@ public class ZreInterfaceTest {
         assertThat(event, is("ENTER"));
         String peer = incoming.popString();
 
-        Message outgoing = new Message();
-        outgoing.addString(peer);
-        outgoing.addString("QUIT");
-        inf.whisper(outgoing);
+        Message outgoing = new Message("QUIT");
+        inf.whisper(peer, outgoing);
 
-        outgoing = new Message();
-        outgoing.addString(peer);
-        outgoing.addString("QUIT");
-        inf.whisper(outgoing);
+        outgoing = new Message("QUIT");
+        inf.whisper(peer, outgoing);
 
         ping.join();
 

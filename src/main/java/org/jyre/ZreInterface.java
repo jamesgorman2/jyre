@@ -96,7 +96,7 @@ public class ZreInterface {
         return pipe.receiveMessage().popStrings();
     }
 
-    public List<String> getGroupPeers(String name) {
+    public List<String> getPeersByGroup(String name) {
         pipe.send(new Message(GROUP_PEERS).addString(name));
         Message message = pipe.receiveMessage();
         return message.isEmpty() ? null : message.popStrings();
@@ -158,12 +158,12 @@ public class ZreInterface {
         pipe.send(new Message(LEAVE).addString(group));
     }
 
-    public void whisper(Message message) {
-        pipe.send(message.pushFrame(WHISPER));
+    public void whisper(String peer, Message message) {
+        pipe.send(message.pushString(peer).pushFrame(WHISPER));
     }
 
-    public void shout(Message message) {
-        pipe.send(message.pushFrame(SHOUT));
+    public void shout(String group, Message message) {
+        pipe.send(message.pushString(group).pushFrame(SHOUT));
     }
 
     public void setHeader(String name, String value) {
