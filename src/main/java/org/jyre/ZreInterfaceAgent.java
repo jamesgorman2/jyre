@@ -1,15 +1,23 @@
 package org.jyre;
 
+import org.jyre.protocol.HelloMessage;
+import org.jyre.protocol.JoinMessage;
+import org.jyre.protocol.LeaveMessage;
+import org.jyre.protocol.PingMessage;
+import org.jyre.protocol.PingOkMessage;
+import org.jyre.protocol.ShoutMessage;
+import org.jyre.protocol.WhisperMessage;
+import org.jyre.protocol.ZreSocket;
 import org.zeromq.api.Backgroundable;
 import org.zeromq.api.Context;
 import org.zeromq.api.LoopAdapter;
 import org.zeromq.api.Message;
 import org.zeromq.api.Pollable;
+import org.zeromq.api.PollerType;
 import org.zeromq.api.Reactor;
 import org.zeromq.api.Socket;
 import org.zeromq.api.SocketType;
 import org.zeromq.jzmq.UdpSocket;
-import org.zeromq.jzmq.reactor.ReactorBuilder;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
@@ -35,9 +43,9 @@ class ZreInterfaceAgent implements Backgroundable, ZreConstants {
     private Socket inbox;
     private Socket outbox;
     private ZreSocket zre;
-    private ReactorBuilder reactor;
-    private UdpBeacon beacon;
     private UdpSocket udp;
+    private UdpBeacon beacon;
+    private Reactor reactor;
     private ZreLogger logger;
     private PipeHandler pipeHandler;
     private InboxHandler inboxHandler;
@@ -82,12 +90,12 @@ class ZreInterfaceAgent implements Backgroundable, ZreConstants {
     /**
      * Amount of time before peer is considered evasive, in milliseconds.
      */
-    private int evasiveTimeout = ZreConstants.PEER_EVASIVE;
+    private int evasiveTimeout = PEER_EVASIVE;
 
     /**
      * Amount of time before peer is considered expired, in milliseconds.
      */
-    private int expiredTimeout = ZreConstants.PEER_EXPIRED;
+    private int expiredTimeout = PEER_EXPIRED;
 
 
     /**
@@ -137,7 +145,8 @@ class ZreInterfaceAgent implements Backgroundable, ZreConstants {
 
         // Create a Reactor for pipe, inbox, and beacon sockets
         this.reactor = context.buildReactor()
-            .withInPollable(pipe, pipeHandler);
+            .withInPollable(pipe, pipeHandler)
+            .build();
 
         // Start the reactor
         reactor.start();
@@ -149,9 +158,9 @@ class ZreInterfaceAgent implements Backgroundable, ZreConstants {
     }
 
     public void start() {
-        reactor.withInPollable(inbox, inboxHandler);
-        reactor.withInPollable(udp.getChannel(), beaconHandler);
-        reactor.withTimerRepeating(ZreConstants.PING_INTERVAL, pingHandler);
+        reactor.addPollable(context.newPollable(inbox, PollerType.POLL_IN), inboxHandler);
+        reactor.addPollable(context.newPollable(udp.getChannel(), PollerType.POLL_IN), beaconHandler);
+        reactor.addTimer(PING_INTERVAL, -1, pingHandler);
     }
 
     private void stop() {
@@ -159,7 +168,7 @@ class ZreInterfaceAgent implements Backgroundable, ZreConstants {
             peer.disconnect();
         }
 
-        reactor.build().stop();
+        reactor.stop();
         logger.close();
         outbox.close();
         pipe.close();
@@ -359,8 +368,8 @@ class ZreInterfaceAgent implements Backgroundable, ZreConstants {
 
         private void onSetInterval(Message message) {
             int interval = message.popInt();
-            reactor.build().cancel(pingHandler);
-            reactor.withTimerRepeating(interval, pingHandler);
+            reactor.cancel(pingHandler);
+            reactor.addTimer(interval, -1, pingHandler);
         }
 
         private void onSetEndpoint(Message message) {
@@ -518,7 +527,7 @@ class ZreInterfaceAgent implements Backgroundable, ZreConstants {
         }
 
         private int incrementStatus() {
-            if (++status > ZreConstants.UBYTE_MAX) {
+            if (++status > UBYTE_MAX) {
                 status = 0;
             }
 

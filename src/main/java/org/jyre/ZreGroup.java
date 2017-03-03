@@ -1,5 +1,13 @@
 package org.jyre;
 
+import org.jyre.protocol.HelloMessage;
+import org.jyre.protocol.JoinMessage;
+import org.jyre.protocol.LeaveMessage;
+import org.jyre.protocol.PingMessage;
+import org.jyre.protocol.PingOkMessage;
+import org.jyre.protocol.ShoutMessage;
+import org.jyre.protocol.WhisperMessage;
+
 import java.util.HashMap;
 
 public class ZreGroup {

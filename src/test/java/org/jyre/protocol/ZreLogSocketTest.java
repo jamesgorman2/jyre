@@ -1,10 +1,11 @@
-package org.jyre;
+package org.jyre.protocol;
 
 import static org.junit.Assert.*;
 
 import org.junit.*;
+import org.jyre.protocol.LogMessage;
+import org.jyre.protocol.ZreLogSocket;
 import org.zeromq.api.*;
-import org.zeromq.api.Message.Frame;
 import org.zeromq.jzmq.*;
 
 /**

@@ -1,5 +1,7 @@
 package org.jyre;
 
+import org.jyre.protocol.LogMessage;
+import org.jyre.protocol.ZreLogSocket;
 import org.zeromq.api.Socket;
 
 public class ZreLogger {

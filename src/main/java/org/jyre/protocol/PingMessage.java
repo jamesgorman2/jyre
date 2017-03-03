@@ -23,7 +23,7 @@
  * along with this program. If not, see http://www.gnu.org/licenses/.      
  * ============================================================================
  */
-package org.jyre;
+package org.jyre.protocol;
 
 import org.zeromq.api.Message;
 import org.zeromq.api.Message.Frame;

@@ -1,7 +1,7 @@
 /* ============================================================================
- * ShoutMessage.java
+ * WhisperMessage.java
  * 
- * Generated codec class for ShoutMessage
+ * Generated codec class for WhisperMessage
  * ----------------------------------------------------------------------------
  * Copyright (c) 1991-2012 iMatix Corporation -- http://www.imatix.com     
  * Copyright other contributors as noted in the AUTHORS file.              
@@ -23,21 +23,20 @@
  * along with this program. If not, see http://www.gnu.org/licenses/.      
  * ============================================================================
  */
-package org.jyre;
+package org.jyre.protocol;
 
 import org.zeromq.api.Message;
 import org.zeromq.api.Message.Frame;
 import org.zeromq.api.Message.FrameBuilder;
 
 /**
- * ShoutMessage class.
+ * WhisperMessage class.
  */
-public class ShoutMessage {
-    public static final ZreSocket.MessageType MESSAGE_TYPE = ZreSocket.MessageType.SHOUT;
+public class WhisperMessage {
+    public static final ZreSocket.MessageType MESSAGE_TYPE = ZreSocket.MessageType.WHISPER;
 
     protected Integer version;
     protected Integer sequence;
-    protected String group;
     protected Frame content = Message.EMPTY_FRAME;
 
     /**
@@ -62,39 +61,10 @@ public class ShoutMessage {
      * Set the sequence field.
      *
      * @param sequence The sequence field
-     * @return The ShoutMessage, for method chaining
+     * @return The WhisperMessage, for method chaining
      */
-    public ShoutMessage withSequence(Integer sequence) {
+    public WhisperMessage withSequence(Integer sequence) {
         this.sequence = sequence;
-        return this;
-    }
-
-    /**
-     * Get the group field.
-     * 
-     * @return The group field
-     */
-    public String getGroup() {
-        return group;
-    }
-
-    /**
-     * Set the group field.
-     * 
-     * @param group The group field
-     */
-    public void setGroup(String group) {
-        this.group = group;
-    }
-
-    /**
-     * Set the group field.
-     *
-     * @param group The group field
-     * @return The ShoutMessage, for method chaining
-     */
-    public ShoutMessage withGroup(String group) {
-        this.group = group;
         return this;
     }
 
@@ -120,15 +90,15 @@ public class ShoutMessage {
      * Set the content field, and take ownership of supplied frame.
      *
      * @param frame The new content frame
-     * @return The ShoutMessage, for method chaining
+     * @return The WhisperMessage, for method chaining
      */
-    public ShoutMessage withContent(Frame frame) {
+    public WhisperMessage withContent(Frame frame) {
         this.content = frame;
         return this;
     }
 
     /**
-     * Serialize the SHOUT message.
+     * Serialize the WHISPER message.
      *
      * @return The serialized message
      */
@@ -136,15 +106,10 @@ public class ShoutMessage {
         //  Serialize message into the frame
         FrameBuilder builder = new FrameBuilder();
         builder.putShort((short) (0xAAA0 | 1));
-        builder.putByte((byte) 3);       //  Message ID
+        builder.putByte((byte) 2);       //  Message ID
 
         builder.putByte((byte) 2);
         builder.putShort((short) (int) sequence);
-        if (group != null) {
-            builder.putString(group);
-        } else {
-            builder.putString("");       //  Empty string
-        }
 
         //  Create multi-frame message
         Message frames = new Message();
@@ -159,20 +124,19 @@ public class ShoutMessage {
     }
 
     /**
-     * Create a new SHOUT message.
+     * Create a new WHISPER message.
      *
      * @param frames The message frames
      * @return The deserialized message
      */
-    public static ShoutMessage fromMessage(Message frames) {
-        ShoutMessage message = new ShoutMessage();
+    public static WhisperMessage fromMessage(Message frames) {
+        WhisperMessage message = new WhisperMessage();
         Frame needle = frames.popFrame();
         message.version = (0xff) & needle.getByte();
         if (message.version != 2) {
             throw new IllegalArgumentException();
         }
         message.sequence = (0xffff) & needle.getShort();
-        message.group = needle.getChars();
         //  Get next frame, leave current untouched
         if (!frames.isEmpty()) {
             message.content = frames.popFrame();

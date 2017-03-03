@@ -1,7 +1,7 @@
 /* ============================================================================
- * PingOkMessage.java
+ * JoinMessage.java
  * 
- * Generated codec class for PingOkMessage
+ * Generated codec class for JoinMessage
  * ----------------------------------------------------------------------------
  * Copyright (c) 1991-2012 iMatix Corporation -- http://www.imatix.com     
  * Copyright other contributors as noted in the AUTHORS file.              
@@ -23,20 +23,22 @@
  * along with this program. If not, see http://www.gnu.org/licenses/.      
  * ============================================================================
  */
-package org.jyre;
+package org.jyre.protocol;
 
 import org.zeromq.api.Message;
 import org.zeromq.api.Message.Frame;
 import org.zeromq.api.Message.FrameBuilder;
 
 /**
- * PingOkMessage class.
+ * JoinMessage class.
  */
-public class PingOkMessage {
-    public static final ZreSocket.MessageType MESSAGE_TYPE = ZreSocket.MessageType.PING_OK;
+public class JoinMessage {
+    public static final ZreSocket.MessageType MESSAGE_TYPE = ZreSocket.MessageType.JOIN;
 
     protected Integer version;
     protected Integer sequence;
+    protected String group;
+    protected Integer status;
 
     /**
      * Get the sequence field.
@@ -60,15 +62,73 @@ public class PingOkMessage {
      * Set the sequence field.
      *
      * @param sequence The sequence field
-     * @return The PingOkMessage, for method chaining
+     * @return The JoinMessage, for method chaining
      */
-    public PingOkMessage withSequence(Integer sequence) {
+    public JoinMessage withSequence(Integer sequence) {
         this.sequence = sequence;
         return this;
     }
 
     /**
-     * Serialize the PING_OK message.
+     * Get the group field.
+     * 
+     * @return The group field
+     */
+    public String getGroup() {
+        return group;
+    }
+
+    /**
+     * Set the group field.
+     * 
+     * @param group The group field
+     */
+    public void setGroup(String group) {
+        this.group = group;
+    }
+
+    /**
+     * Set the group field.
+     *
+     * @param group The group field
+     * @return The JoinMessage, for method chaining
+     */
+    public JoinMessage withGroup(String group) {
+        this.group = group;
+        return this;
+    }
+
+    /**
+     * Get the status field.
+     * 
+     * @return The status field
+     */
+    public Integer getStatus() {
+        return status;
+    }
+
+    /**
+     * Set the status field.
+     * 
+     * @param status The status field
+     */
+    public void setStatus(Integer status) {
+        this.status = status;
+    }
+
+    /**
+     * Set the status field.
+     *
+     * @param status The status field
+     * @return The JoinMessage, for method chaining
+     */
+    public JoinMessage withStatus(Integer status) {
+        this.status = status;
+        return this;
+    }
+
+    /**
+     * Serialize the JOIN message.
      *
      * @return The serialized message
      */
@@ -76,10 +136,16 @@ public class PingOkMessage {
         //  Serialize message into the frame
         FrameBuilder builder = new FrameBuilder();
         builder.putShort((short) (0xAAA0 | 1));
-        builder.putByte((byte) 7);       //  Message ID
+        builder.putByte((byte) 4);       //  Message ID
 
         builder.putByte((byte) 2);
         builder.putShort((short) (int) sequence);
+        if (group != null) {
+            builder.putString(group);
+        } else {
+            builder.putString("");       //  Empty string
+        }
+        builder.putByte((byte) (int) status);
 
         //  Create multi-frame message
         Message frames = new Message();
@@ -91,21 +157,22 @@ public class PingOkMessage {
     }
 
     /**
-     * Create a new PING_OK message.
+     * Create a new JOIN message.
      *
      * @param frames The message frames
      * @return The deserialized message
      */
-    public static PingOkMessage fromMessage(Message frames) {
-        PingOkMessage message = new PingOkMessage();
+    public static JoinMessage fromMessage(Message frames) {
+        JoinMessage message = new JoinMessage();
         Frame needle = frames.popFrame();
         message.version = (0xff) & needle.getByte();
         if (message.version != 2) {
             throw new IllegalArgumentException();
         }
         message.sequence = (0xffff) & needle.getShort();
+        message.group = needle.getChars();
+        message.status = (0xff) & needle.getByte();
 
         return message;
     }
 }
-

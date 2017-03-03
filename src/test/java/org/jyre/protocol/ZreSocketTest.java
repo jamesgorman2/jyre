@@ -1,8 +1,16 @@
-package org.jyre;
+package org.jyre.protocol;
 
 import static org.junit.Assert.*;
 
 import org.junit.*;
+import org.jyre.protocol.HelloMessage;
+import org.jyre.protocol.JoinMessage;
+import org.jyre.protocol.LeaveMessage;
+import org.jyre.protocol.PingMessage;
+import org.jyre.protocol.PingOkMessage;
+import org.jyre.protocol.ShoutMessage;
+import org.jyre.protocol.WhisperMessage;
+import org.jyre.protocol.ZreSocket;
 import org.zeromq.api.*;
 import org.zeromq.api.Message.Frame;
 import org.zeromq.jzmq.*;

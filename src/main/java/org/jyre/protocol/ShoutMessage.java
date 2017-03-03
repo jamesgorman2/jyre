@@ -1,7 +1,7 @@
 /* ============================================================================
- * JoinMessage.java
+ * ShoutMessage.java
  * 
- * Generated codec class for JoinMessage
+ * Generated codec class for ShoutMessage
  * ----------------------------------------------------------------------------
  * Copyright (c) 1991-2012 iMatix Corporation -- http://www.imatix.com     
  * Copyright other contributors as noted in the AUTHORS file.              
@@ -23,22 +23,22 @@
  * along with this program. If not, see http://www.gnu.org/licenses/.      
  * ============================================================================
  */
-package org.jyre;
+package org.jyre.protocol;
 
 import org.zeromq.api.Message;
 import org.zeromq.api.Message.Frame;
 import org.zeromq.api.Message.FrameBuilder;
 
 /**
- * JoinMessage class.
+ * ShoutMessage class.
  */
-public class JoinMessage {
-    public static final ZreSocket.MessageType MESSAGE_TYPE = ZreSocket.MessageType.JOIN;
+public class ShoutMessage {
+    public static final ZreSocket.MessageType MESSAGE_TYPE = ZreSocket.MessageType.SHOUT;
 
     protected Integer version;
     protected Integer sequence;
     protected String group;
-    protected Integer status;
+    protected Frame content = Message.EMPTY_FRAME;
 
     /**
      * Get the sequence field.
@@ -62,9 +62,9 @@ public class JoinMessage {
      * Set the sequence field.
      *
      * @param sequence The sequence field
-     * @return The JoinMessage, for method chaining
+     * @return The ShoutMessage, for method chaining
      */
-    public JoinMessage withSequence(Integer sequence) {
+    public ShoutMessage withSequence(Integer sequence) {
         this.sequence = sequence;
         return this;
     }
@@ -91,44 +91,44 @@ public class JoinMessage {
      * Set the group field.
      *
      * @param group The group field
-     * @return The JoinMessage, for method chaining
+     * @return The ShoutMessage, for method chaining
      */
-    public JoinMessage withGroup(String group) {
+    public ShoutMessage withGroup(String group) {
         this.group = group;
         return this;
     }
 
     /**
-     * Get the status field.
+     * Get the content field.
      * 
-     * @return The status field
+     * @return The content field
      */
-    public Integer getStatus() {
-        return status;
+    public Frame getContent() {
+        return content;
     }
 
     /**
-     * Set the status field.
-     * 
-     * @param status The status field
-     */
-    public void setStatus(Integer status) {
-        this.status = status;
-    }
-
-    /**
-     * Set the status field.
+     * Set the content field, and take ownership of supplied frame.
      *
-     * @param status The status field
-     * @return The JoinMessage, for method chaining
+     * @param frame The new content frame
      */
-    public JoinMessage withStatus(Integer status) {
-        this.status = status;
+    public void setContent(Frame frame) {
+        this.content = frame;
+    }
+
+    /**
+     * Set the content field, and take ownership of supplied frame.
+     *
+     * @param frame The new content frame
+     * @return The ShoutMessage, for method chaining
+     */
+    public ShoutMessage withContent(Frame frame) {
+        this.content = frame;
         return this;
     }
 
     /**
-     * Serialize the JOIN message.
+     * Serialize the SHOUT message.
      *
      * @return The serialized message
      */
@@ -136,7 +136,7 @@ public class JoinMessage {
         //  Serialize message into the frame
         FrameBuilder builder = new FrameBuilder();
         builder.putShort((short) (0xAAA0 | 1));
-        builder.putByte((byte) 4);       //  Message ID
+        builder.putByte((byte) 3);       //  Message ID
 
         builder.putByte((byte) 2);
         builder.putShort((short) (int) sequence);
@@ -145,7 +145,6 @@ public class JoinMessage {
         } else {
             builder.putString("");       //  Empty string
         }
-        builder.putByte((byte) (int) status);
 
         //  Create multi-frame message
         Message frames = new Message();
@@ -153,17 +152,20 @@ public class JoinMessage {
         //  Now add the data frame
         frames.addFrame(builder.build());
 
+        //  Now add any frame fields, in order
+        frames.addFrame(content);
+
         return frames;
     }
 
     /**
-     * Create a new JOIN message.
+     * Create a new SHOUT message.
      *
      * @param frames The message frames
      * @return The deserialized message
      */
-    public static JoinMessage fromMessage(Message frames) {
-        JoinMessage message = new JoinMessage();
+    public static ShoutMessage fromMessage(Message frames) {
+        ShoutMessage message = new ShoutMessage();
         Frame needle = frames.popFrame();
         message.version = (0xff) & needle.getByte();
         if (message.version != 2) {
@@ -171,7 +173,12 @@ public class JoinMessage {
         }
         message.sequence = (0xffff) & needle.getShort();
         message.group = needle.getChars();
-        message.status = (0xff) & needle.getByte();
+        //  Get next frame, leave current untouched
+        if (!frames.isEmpty()) {
+            message.content = frames.popFrame();
+        } else {
+            throw new IllegalArgumentException("Invalid message: missing frame: content");
+        }
 
         return message;
     }

@@ -1,7 +1,7 @@
 /* ============================================================================
- * WhisperMessage.java
+ * PingOkMessage.java
  * 
- * Generated codec class for WhisperMessage
+ * Generated codec class for PingOkMessage
  * ----------------------------------------------------------------------------
  * Copyright (c) 1991-2012 iMatix Corporation -- http://www.imatix.com     
  * Copyright other contributors as noted in the AUTHORS file.              
@@ -23,21 +23,20 @@
  * along with this program. If not, see http://www.gnu.org/licenses/.      
  * ============================================================================
  */
-package org.jyre;
+package org.jyre.protocol;
 
 import org.zeromq.api.Message;
 import org.zeromq.api.Message.Frame;
 import org.zeromq.api.Message.FrameBuilder;
 
 /**
- * WhisperMessage class.
+ * PingOkMessage class.
  */
-public class WhisperMessage {
-    public static final ZreSocket.MessageType MESSAGE_TYPE = ZreSocket.MessageType.WHISPER;
+public class PingOkMessage {
+    public static final ZreSocket.MessageType MESSAGE_TYPE = ZreSocket.MessageType.PING_OK;
 
     protected Integer version;
     protected Integer sequence;
-    protected Frame content = Message.EMPTY_FRAME;
 
     /**
      * Get the sequence field.
@@ -61,44 +60,15 @@ public class WhisperMessage {
      * Set the sequence field.
      *
      * @param sequence The sequence field
-     * @return The WhisperMessage, for method chaining
+     * @return The PingOkMessage, for method chaining
      */
-    public WhisperMessage withSequence(Integer sequence) {
+    public PingOkMessage withSequence(Integer sequence) {
         this.sequence = sequence;
         return this;
     }
 
     /**
-     * Get the content field.
-     * 
-     * @return The content field
-     */
-    public Frame getContent() {
-        return content;
-    }
-
-    /**
-     * Set the content field, and take ownership of supplied frame.
-     *
-     * @param frame The new content frame
-     */
-    public void setContent(Frame frame) {
-        this.content = frame;
-    }
-
-    /**
-     * Set the content field, and take ownership of supplied frame.
-     *
-     * @param frame The new content frame
-     * @return The WhisperMessage, for method chaining
-     */
-    public WhisperMessage withContent(Frame frame) {
-        this.content = frame;
-        return this;
-    }
-
-    /**
-     * Serialize the WHISPER message.
+     * Serialize the PING_OK message.
      *
      * @return The serialized message
      */
@@ -106,7 +76,7 @@ public class WhisperMessage {
         //  Serialize message into the frame
         FrameBuilder builder = new FrameBuilder();
         builder.putShort((short) (0xAAA0 | 1));
-        builder.putByte((byte) 2);       //  Message ID
+        builder.putByte((byte) 7);       //  Message ID
 
         builder.putByte((byte) 2);
         builder.putShort((short) (int) sequence);
@@ -117,33 +87,25 @@ public class WhisperMessage {
         //  Now add the data frame
         frames.addFrame(builder.build());
 
-        //  Now add any frame fields, in order
-        frames.addFrame(content);
-
         return frames;
     }
 
     /**
-     * Create a new WHISPER message.
+     * Create a new PING_OK message.
      *
      * @param frames The message frames
      * @return The deserialized message
      */
-    public static WhisperMessage fromMessage(Message frames) {
-        WhisperMessage message = new WhisperMessage();
+    public static PingOkMessage fromMessage(Message frames) {
+        PingOkMessage message = new PingOkMessage();
         Frame needle = frames.popFrame();
         message.version = (0xff) & needle.getByte();
         if (message.version != 2) {
             throw new IllegalArgumentException();
         }
         message.sequence = (0xffff) & needle.getShort();
-        //  Get next frame, leave current untouched
-        if (!frames.isEmpty()) {
-            message.content = frames.popFrame();
-        } else {
-            throw new IllegalArgumentException("Invalid message: missing frame: content");
-        }
 
         return message;
     }
 }
+
