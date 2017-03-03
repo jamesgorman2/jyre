@@ -244,8 +244,8 @@ class ZreInterfaceAgent implements Backgroundable, ZreConstants {
                 case "SET VERBOSE":
                     onSetVerbose();
                     break;
-                case "DISABLE BEACONS":
-                    onDisableBeacons();
+                case "SET BEACONS ENABLED":
+                    onSetBeaconsEnabled(message);
                     break;
                 case "SET PORT":
                     onSetPort(message);
@@ -333,13 +333,12 @@ class ZreInterfaceAgent implements Backgroundable, ZreConstants {
             verbose = true;
         }
 
-        private void onDisableBeacons() {
-            beacons = false;
+        private void onSetBeaconsEnabled(Message message) {
+            beacons = message.popString().equals("true");
         }
 
         private void onSetPort(Message message) {
             int port = message.popInt();
-            reactor.build().cancel(beaconHandler);
             udp.close();
             try {
                 udp = new UdpSocket(port);
@@ -348,7 +347,6 @@ class ZreInterfaceAgent implements Backgroundable, ZreConstants {
                     System.err.println("E: Unable to initialize DatagramChannel for UDP beacon");
                 }
             }
-            reactor.withInPollable(udp.getChannel(), beaconHandler);
         }
 
         private void onSetEvasiveTimeout(Message message) {

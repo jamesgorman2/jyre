@@ -16,7 +16,7 @@ public class ZreInterface {
     private static final Message.Frame SET_NAME            = new Message.Frame("SET NAME");
     private static final Message.Frame SET_HEADER          = new Message.Frame("SET HEADER");
     private static final Message.Frame SET_VERBOSE         = new Message.Frame("SET VERBOSE");
-    private static final Message.Frame DISABLE_BEACONS     = new Message.Frame("DISABLE BEACONS");
+    private static final Message.Frame SET_BEACONS_ENABLED = new Message.Frame("SET BEACONS ENABLED");
     private static final Message.Frame SET_PORT            = new Message.Frame("SET PORT");
     private static final Message.Frame SET_EVASIVE_TIMEOUT = new Message.Frame("SET EVASIVE TIMEOUT");
     private static final Message.Frame SET_EXPIRED_TIMEOUT = new Message.Frame("SET EXPIRED TIMEOUT");
@@ -44,7 +44,11 @@ public class ZreInterface {
     private Socket inbox;
 
     public ZreInterface() {
-        this.context = ContextFactory.createContext(1);
+        this(ContextFactory.createContext(1));
+    }
+
+    public ZreInterface(Context context) {
+        this.context = context;
         this.inbox = context.buildSocket(SocketType.PAIR).bind("inproc://inbox");
         this.pipe = context.fork(new ZreInterfaceAgent());
     }
@@ -67,8 +71,8 @@ public class ZreInterface {
         pipe.send(new Message(SET_VERBOSE));
     }
 
-    public void disableBeacons() {
-        pipe.send(new Message(DISABLE_BEACONS));
+    public void setBeaconsEnabled(boolean enabled) {
+        pipe.send(new Message(SET_BEACONS_ENABLED).addString(String.valueOf(enabled)));
     }
 
     public void setPort(int port) {

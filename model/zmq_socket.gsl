@@ -11,7 +11,7 @@
 .global.ClassName = java_class_name(class.name)
 .global.PackageName = java_package_name(switches.package)
 .echo "Generating src/main/java/$(switches.package)/$(ClassName)Socket.java..."
-.directory.create("src/main/java/$(switches.package)")
+.directory.create("../src/main/java/$(switches.package)")
 .output "../src/main/java/$(switches.package)/$(ClassName)Socket.java"
 /* ============================================================================
  * $(ClassName)Socket.java
@@ -146,45 +146,84 @@ public class $(ClassName)Socket implements Closeable {
     }
 
     /**
-     * Receive a message on the socket.
+     * Unwrap a message from the given frames.
      *
      * @return The MessageType of the received message
      */
-    public MessageType receive() {
+    public MessageType unwrap(Message frames) {
         int id = 0;
-        Message frames;
-        Frame needle;
-        MessageType type;
         try {
-            //  Read valid message frame from socket; we loop over any
-            //  garbage data we might receive from badly-connected peers
-            while (true) {
-                frames = socket.receiveMessage();
+            //  Read and parse command in frame
+            Frame needle = frames.popFrame();
 
-                //  If we're reading from a ROUTER socket, get address
-                if (socket.getZMQSocket().getType() == ZMQ.ROUTER) {
-                    this.address = frames.popFrame();
-                }
-
-                //  Read and parse command in frame
-                needle = frames.getFirstFrame();
-
-                //  Get and check protocol signature
-                int signature = (0xffff) & needle.getShort();
-                if (signature == (0xAAA0 | $(class.signature)))
-                    break;               //  Valid signature
-
-                //  Protocol assertion, drop message
+            //  Get and check protocol signature
+            int signature = 0xffff & needle.getShort();
+            if (signature != (0xaaa0 | $(class.signature))) {
+                return null;             //  Invalid signature
             }
 
             //  Get message id, which is first byte in frame
-            id = (0xff) & needle.getByte();
-            type = MessageType.values()[id-1];
+            id = 0xff & needle.getByte();
+            MessageType type = MessageType.values()[id-1];
             switch (type) {
 .for class.message
-                case $(NAME):
-                    this.$(java_var_name(message.name)) = $(java_class_name(message.name))Message.fromMessage(frames);
+                case $(NAME): {
+                    $(java_class_name(message.name))Message message = this.$(java_var_name(message.name)) = new $(java_class_name(message.name))Message();
+.    for field
+.        if type = "number"
+.            if size = 1
+                    message.$(java_var_name(name)) = (0xff) & needle.getByte();
+.            elsif size = 2
+                    message.$(java_var_name(name)) = (0xffff) & needle.getShort();
+.            elsif size = 4
+                    message.$(java_var_name(name)) = needle.getInt();
+.            elsif size = 8
+                    message.$(java_var_name(name)) = needle.getLong();
+.            endif
+.                if defined(field.value)
+                    if (message.$(java_var_name(name)) != $(field.value:)) {
+                        throw new IllegalArgumentException();
+                    }
+.                endif
+.        elsif type = "octets"
+                    message.$(java_var_name(name)) = needle.getBytes();
+                    assert message.$(java_var_name(name)).length == $(size);
+.            if defined(field.value)
+                    if (message.$(java_var_name(name)) != $(field.value:)) {
+                        throw new IllegalArgumentException();
+                    }
+.            endif
+.        elsif type = "string"
+                    message.$(java_var_name(name)) = needle.getChars();
+.            if defined(field.value)
+                    if (!message.$(java_var_name(name)).equals( "$(field.value:)")) {
+                        throw new IllegalArgumentException();
+                    }
+.            endif
+.        elsif type = "strings"
+                    message.$(java_var_name(name)) = needle.getClobs();
+.        elsif type = "hash"
+                    message.$(java_var_name(name)) = needle.getMap();
+.        elsif type = "frame"
+                    //  Get next frame, leave current untouched
+                    if (!frames.isEmpty()) {
+                        message.$(java_var_name(name)) = frames.popFrame();
+                    } else {
+                        throw new IllegalArgumentException("Invalid message: missing frame: $(name)");
+                    }
+.        elsif type = "msg"
+                    //  Get remaining frames, leave current untouched
+                    if (!frames.isEmpty()) {
+                        while (!frames.isEmpty()) {
+                            message.$(java_var_name(name)).addFrame(frames.popFrame());
+                        }
+                    } else {
+                        throw new IllegalArgumentException("Invalid message: missing frame: $(name)");
+                    }
+.        endif
+.    endfor
                     break;
+                }
 .endfor
                 default:
                     throw new IllegalArgumentException("Invalid message: unrecognized type: " + type);
@@ -196,6 +235,31 @@ public class $(ClassName)Socket implements Closeable {
             System.err.printf("E: Malformed message: %s\\n", id);
             ex.printStackTrace();
             return null;
+        }
+    }
+
+    /**
+     * Receive a message on the socket.
+     *
+     * @return The MessageType of the received message
+     */
+    public MessageType receive() {
+        //  Read valid message frame from socket; we loop over any
+        //  garbage data we might receive from badly-connected peers
+        while (true) {
+            Message frames = socket.receiveMessage();
+
+            //  If we're reading from a ROUTER socket, get address
+            if (socket.getZMQSocket().getType() == ZMQ.ROUTER) {
+                this.address = frames.popFrame();
+            }
+
+            MessageType type = unwrap(frames);
+            if (type != null) {
+                return type;
+            }
+
+            //  Protocol assertion, drop message
         }
     }
 .for message
@@ -220,22 +284,25 @@ public class $(ClassName)Socket implements Closeable {
     public boolean send($(java_class_name(name))Message message) {
         //  Create multi-frame message
         Message frames = message.toMessage();
+        addAddress(frames);
 
+        return socket.send(frames);
+    }
+.endfor
+
+    private void addAddress(Message frames) {
         //  If we're sending to a ROUTER, we add the address first
         if (socket.getZMQSocket().getType() == ZMQ.ROUTER) {
             assert address != null;
             frames.pushFrame(address);
         }
-
-        return socket.send(frames);
     }
-.endfor
 }
 
 .for message
 .global.MessageName = java_class_name(message.name)
 .echo "Generating src/main/java/$(switches.package)/$(MessageName)Message.java..."
-.directory.create("src/main/java/$(switches.package)")
+.directory.create("../src/main/java/$(switches.package)")
 .output "../src/main/java/$(switches.package)/$(MessageName)Message.java"
 /* ============================================================================
  * $(MessageName)Message.java
@@ -667,7 +734,7 @@ public class $(MessageName)Message {
     public Message toMessage() {
         //  Serialize message into the frame
         FrameBuilder builder = new FrameBuilder();
-        builder.putShort((short) (0xAAA0 | $(class.signature)));
+        builder.putShort((short) (0xaaa0 | $(class.signature)));
         builder.putByte((byte) $(id));   //  Message ID
 
 .    for field
@@ -739,77 +806,11 @@ public class $(MessageName)Message {
 
         return frames;
     }
-
-    /**
-     * Create a new $(message.NAME) message.
-     *
-     * @param frames The message frames
-     * @return The deserialized message
-     */
-    public static $(java_class_name(message.name))Message fromMessage(Message frames) {
-        $(java_class_name(message.name))Message message = new $(java_class_name(message.name))Message();
-        Frame needle = frames.popFrame();
-.    for field
-.        if type = "number"
-.            if size = 1
-        message.$(java_var_name(name)) = (0xff) & needle.getByte();
-.            elsif size = 2
-        message.$(java_var_name(name)) = (0xffff) & needle.getShort();
-.            elsif size = 4
-        message.$(java_var_name(name)) = needle.getInt();
-.            elsif size = 8
-        message.$(java_var_name(name)) = needle.getLong();
-.            endif
-.                if defined(field.value)
-        if (message.$(java_var_name(name)) != $(field.value:)) {
-            throw new IllegalArgumentException();
-        }
-.                endif
-.        elsif type = "octets"
-        message.$(java_var_name(name)) = needle.getBytes();
-        assert message.$(java_var_name(name)).length == $(size);
-.            if defined(field.value)
-        if (message.$(java_var_name(name)) != $(field.value:)) {
-            throw new IllegalArgumentException();
-        }
-.            endif
-.        elsif type = "string"
-        message.$(java_var_name(name)) = needle.getChars();
-.            if defined(field.value)
-        if (!message.$(java_var_name(name)).equals( "$(field.value:)")) {
-            throw new IllegalArgumentException();
-        }
-.            endif
-.        elsif type = "strings"
-        message.$(java_var_name(name)) = needle.getClobs();
-.        elsif type = "hash"
-        message.$(java_var_name(name)) = needle.getMap();
-.        elsif type = "frame"
-        //  Get next frame, leave current untouched
-        if (!frames.isEmpty()) {
-            message.$(java_var_name(name)) = frames.popFrame();
-        } else {
-            throw new IllegalArgumentException("Invalid message: missing frame: $(name)");
-        }
-.        elsif type = "msg"
-        //  Get remaining frames, leave current untouched
-        if (!frames.isEmpty()) {
-            while (!frames.isEmpty()) {
-                message.$(java_var_name(name)).addFrame(frames.popFrame());
-            }
-        } else {
-            throw new IllegalArgumentException("Invalid message: missing frame: $(name)");
-        }
-.        endif
-.    endfor
-
-        return message;
-    }
 }
 .endfor
 
-.echo "Generating src/test/java/$(switches.package)/Test$(ClassName).java..."
-.directory.create("src/test/java/$(switches.package)")
+.echo "Generating src/test/java/$(switches.package)/$(ClassName)SocketTest.java..."
+.directory.create("../src/test/java/$(switches.package)")
 .output "../src/test/java/$(switches.package)/$(ClassName)SocketTest.java"
 package $(PackageName);
 
