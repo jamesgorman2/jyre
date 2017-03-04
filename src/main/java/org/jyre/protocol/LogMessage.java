@@ -25,10 +25,6 @@
  */
 package org.jyre.protocol;
 
-import org.zeromq.api.Message;
-import org.zeromq.api.Message.Frame;
-import org.zeromq.api.Message.FrameBuilder;
-
 /**
  * LogMessage class.
  */
@@ -214,56 +210,6 @@ public class LogMessage {
     public LogMessage withData(String data) {
         this.data = data;
         return this;
-    }
-
-    /**
-     * Serialize the LOG message.
-     *
-     * @return The serialized message
-     */
-    public Message toMessage() {
-        //  Serialize message into the frame
-        FrameBuilder builder = new FrameBuilder();
-        builder.putShort((short) (0xAAA0 | 2));
-        builder.putByte((byte) 1);       //  Message ID
-
-        builder.putByte((byte) (int) level);
-        builder.putByte((byte) (int) event);
-        builder.putShort((short) (int) node);
-        builder.putShort((short) (int) peer);
-        builder.putLong(time);
-        if (data != null) {
-            builder.putString(data);
-        } else {
-            builder.putString("");       //  Empty string
-        }
-
-        //  Create multi-frame message
-        Message frames = new Message();
-
-        //  Now add the data frame
-        frames.addFrame(builder.build());
-
-        return frames;
-    }
-
-    /**
-     * Create a new LOG message.
-     *
-     * @param frames The message frames
-     * @return The deserialized message
-     */
-    public static LogMessage fromMessage(Message frames) {
-        LogMessage message = new LogMessage();
-        Frame needle = frames.popFrame();
-        message.level = (0xff) & needle.getByte();
-        message.event = (0xff) & needle.getByte();
-        message.node = (0xffff) & needle.getShort();
-        message.peer = (0xffff) & needle.getShort();
-        message.time = needle.getLong();
-        message.data = needle.getChars();
-
-        return message;
     }
 }
 

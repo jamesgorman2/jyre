@@ -28,6 +28,7 @@ package org.jyre.protocol;
 import org.zeromq.ZMQ;
 import org.zeromq.api.Message;
 import org.zeromq.api.Message.Frame;
+import org.zeromq.api.Message.FrameBuilder;
 import org.zeromq.api.Socket;
 
 import java.io.Closeable;
@@ -167,7 +168,7 @@ public class ZreSocket implements Closeable {
                 }
 
                 //  Read and parse command in frame
-                needle = frames.getFirstFrame();
+                needle = frames.popFrame();
 
                 //  Get and check protocol signature
                 int signature = (0xffff) & needle.getShort();
@@ -181,27 +182,91 @@ public class ZreSocket implements Closeable {
             id = (0xff) & needle.getByte();
             type = MessageType.values()[id-1];
             switch (type) {
-                case HELLO:
-                    this.hello = HelloMessage.fromMessage(frames);
+                case HELLO: {
+                    HelloMessage message = this.hello = new HelloMessage();
+                    message.version = (0xff) & needle.getByte();
+                    if (message.version != 2) {
+                        throw new IllegalArgumentException();
+                    }
+                    message.sequence = (0xffff) & needle.getShort();
+                    message.endpoint = needle.getChars();
+                    message.groups = needle.getClobs();
+                    message.status = (0xff) & needle.getByte();
+                    message.name = needle.getChars();
+                    message.headers = needle.getMap();
                     break;
-                case WHISPER:
-                    this.whisper = WhisperMessage.fromMessage(frames);
+                }
+                case WHISPER: {
+                    WhisperMessage message = this.whisper = new WhisperMessage();
+                    message.version = (0xff) & needle.getByte();
+                    if (message.version != 2) {
+                        throw new IllegalArgumentException();
+                    }
+                    message.sequence = (0xffff) & needle.getShort();
+                    //  Get next frame, leave current untouched
+                    if (!frames.isEmpty()) {
+                        message.content = frames.popFrame();
+                    } else {
+                        throw new IllegalArgumentException("Invalid message: missing frame: content");
+                    }
                     break;
-                case SHOUT:
-                    this.shout = ShoutMessage.fromMessage(frames);
+                }
+                case SHOUT: {
+                    ShoutMessage message = this.shout = new ShoutMessage();
+                    message.version = (0xff) & needle.getByte();
+                    if (message.version != 2) {
+                        throw new IllegalArgumentException();
+                    }
+                    message.sequence = (0xffff) & needle.getShort();
+                    message.group = needle.getChars();
+                    //  Get next frame, leave current untouched
+                    if (!frames.isEmpty()) {
+                        message.content = frames.popFrame();
+                    } else {
+                        throw new IllegalArgumentException("Invalid message: missing frame: content");
+                    }
                     break;
-                case JOIN:
-                    this.join = JoinMessage.fromMessage(frames);
+                }
+                case JOIN: {
+                    JoinMessage message = this.join = new JoinMessage();
+                    message.version = (0xff) & needle.getByte();
+                    if (message.version != 2) {
+                        throw new IllegalArgumentException();
+                    }
+                    message.sequence = (0xffff) & needle.getShort();
+                    message.group = needle.getChars();
+                    message.status = (0xff) & needle.getByte();
                     break;
-                case LEAVE:
-                    this.leave = LeaveMessage.fromMessage(frames);
+                }
+                case LEAVE: {
+                    LeaveMessage message = this.leave = new LeaveMessage();
+                    message.version = (0xff) & needle.getByte();
+                    if (message.version != 2) {
+                        throw new IllegalArgumentException();
+                    }
+                    message.sequence = (0xffff) & needle.getShort();
+                    message.group = needle.getChars();
+                    message.status = (0xff) & needle.getByte();
                     break;
-                case PING:
-                    this.ping = PingMessage.fromMessage(frames);
+                }
+                case PING: {
+                    PingMessage message = this.ping = new PingMessage();
+                    message.version = (0xff) & needle.getByte();
+                    if (message.version != 2) {
+                        throw new IllegalArgumentException();
+                    }
+                    message.sequence = (0xffff) & needle.getShort();
                     break;
-                case PING_OK:
-                    this.pingOk = PingOkMessage.fromMessage(frames);
+                }
+                case PING_OK: {
+                    PingOkMessage message = this.pingOk = new PingOkMessage();
+                    message.version = (0xff) & needle.getByte();
+                    if (message.version != 2) {
+                        throw new IllegalArgumentException();
+                    }
+                    message.sequence = (0xffff) & needle.getShort();
                     break;
+                }
                 default:
                     throw new IllegalArgumentException("Invalid message: unrecognized type: " + type);
             }
@@ -285,14 +350,46 @@ public class ZreSocket implements Closeable {
      * @return true if the message was sent, false otherwise
      */
     public boolean send(HelloMessage message) {
+        //  Now serialize message into the frame
+        FrameBuilder builder = new FrameBuilder();
+        builder.putShort((short) (0xAAA0 | 1));
+        builder.putByte((byte) 1);       //  Message ID
+
+        builder.putByte((byte) 2);
+        builder.putShort((short) (int) message.sequence);
+        if (message.endpoint != null) {
+            builder.putString(message.endpoint);
+        } else {
+            builder.putString("");        //  Empty string
+        }
+        if (message.groups != null) {
+            builder.putClobs(message.groups);
+        } else {
+            builder.putInt(0);   //  Empty string array
+        }
+        builder.putByte((byte) (int) message.status);
+        if (message.name != null) {
+            builder.putString(message.name);
+        } else {
+            builder.putString("");        //  Empty string
+        }
+        if (message.headers != null) {
+            builder.putMap(message.headers);
+        } else {
+            builder.putInt(0);   //  Empty hash
+        }
+
         //  Create multi-frame message
-        Message frames = message.toMessage();
+        Message frames = new Message();
 
         //  If we're sending to a ROUTER, we add the address first
         if (socket.getZMQSocket().getType() == ZMQ.ROUTER) {
             assert address != null;
-            frames.pushFrame(address);
+            frames.addFrame(address);
         }
+
+        //  Now add the data frame
+        frames.addFrame(builder.build());
 
         return socket.send(frames);
     }
@@ -304,14 +401,28 @@ public class ZreSocket implements Closeable {
      * @return true if the message was sent, false otherwise
      */
     public boolean send(WhisperMessage message) {
+        //  Now serialize message into the frame
+        FrameBuilder builder = new FrameBuilder();
+        builder.putShort((short) (0xAAA0 | 1));
+        builder.putByte((byte) 2);       //  Message ID
+
+        builder.putByte((byte) 2);
+        builder.putShort((short) (int) message.sequence);
+
         //  Create multi-frame message
-        Message frames = message.toMessage();
+        Message frames = new Message();
 
         //  If we're sending to a ROUTER, we add the address first
         if (socket.getZMQSocket().getType() == ZMQ.ROUTER) {
             assert address != null;
-            frames.pushFrame(address);
+            frames.addFrame(address);
         }
+
+        //  Now add the data frame
+        frames.addFrame(builder.build());
+
+        //  Now add any frame fields, in order
+        frames.addFrame(message.content);
 
         return socket.send(frames);
     }
@@ -323,14 +434,33 @@ public class ZreSocket implements Closeable {
      * @return true if the message was sent, false otherwise
      */
     public boolean send(ShoutMessage message) {
+        //  Now serialize message into the frame
+        FrameBuilder builder = new FrameBuilder();
+        builder.putShort((short) (0xAAA0 | 1));
+        builder.putByte((byte) 3);       //  Message ID
+
+        builder.putByte((byte) 2);
+        builder.putShort((short) (int) message.sequence);
+        if (message.group != null) {
+            builder.putString(message.group);
+        } else {
+            builder.putString("");        //  Empty string
+        }
+
         //  Create multi-frame message
-        Message frames = message.toMessage();
+        Message frames = new Message();
 
         //  If we're sending to a ROUTER, we add the address first
         if (socket.getZMQSocket().getType() == ZMQ.ROUTER) {
             assert address != null;
-            frames.pushFrame(address);
+            frames.addFrame(address);
         }
+
+        //  Now add the data frame
+        frames.addFrame(builder.build());
+
+        //  Now add any frame fields, in order
+        frames.addFrame(message.content);
 
         return socket.send(frames);
     }
@@ -342,14 +472,31 @@ public class ZreSocket implements Closeable {
      * @return true if the message was sent, false otherwise
      */
     public boolean send(JoinMessage message) {
+        //  Now serialize message into the frame
+        FrameBuilder builder = new FrameBuilder();
+        builder.putShort((short) (0xAAA0 | 1));
+        builder.putByte((byte) 4);       //  Message ID
+
+        builder.putByte((byte) 2);
+        builder.putShort((short) (int) message.sequence);
+        if (message.group != null) {
+            builder.putString(message.group);
+        } else {
+            builder.putString("");        //  Empty string
+        }
+        builder.putByte((byte) (int) message.status);
+
         //  Create multi-frame message
-        Message frames = message.toMessage();
+        Message frames = new Message();
 
         //  If we're sending to a ROUTER, we add the address first
         if (socket.getZMQSocket().getType() == ZMQ.ROUTER) {
             assert address != null;
-            frames.pushFrame(address);
+            frames.addFrame(address);
         }
+
+        //  Now add the data frame
+        frames.addFrame(builder.build());
 
         return socket.send(frames);
     }
@@ -361,14 +508,31 @@ public class ZreSocket implements Closeable {
      * @return true if the message was sent, false otherwise
      */
     public boolean send(LeaveMessage message) {
+        //  Now serialize message into the frame
+        FrameBuilder builder = new FrameBuilder();
+        builder.putShort((short) (0xAAA0 | 1));
+        builder.putByte((byte) 5);       //  Message ID
+
+        builder.putByte((byte) 2);
+        builder.putShort((short) (int) message.sequence);
+        if (message.group != null) {
+            builder.putString(message.group);
+        } else {
+            builder.putString("");        //  Empty string
+        }
+        builder.putByte((byte) (int) message.status);
+
         //  Create multi-frame message
-        Message frames = message.toMessage();
+        Message frames = new Message();
 
         //  If we're sending to a ROUTER, we add the address first
         if (socket.getZMQSocket().getType() == ZMQ.ROUTER) {
             assert address != null;
-            frames.pushFrame(address);
+            frames.addFrame(address);
         }
+
+        //  Now add the data frame
+        frames.addFrame(builder.build());
 
         return socket.send(frames);
     }
@@ -380,14 +544,25 @@ public class ZreSocket implements Closeable {
      * @return true if the message was sent, false otherwise
      */
     public boolean send(PingMessage message) {
+        //  Now serialize message into the frame
+        FrameBuilder builder = new FrameBuilder();
+        builder.putShort((short) (0xAAA0 | 1));
+        builder.putByte((byte) 6);       //  Message ID
+
+        builder.putByte((byte) 2);
+        builder.putShort((short) (int) message.sequence);
+
         //  Create multi-frame message
-        Message frames = message.toMessage();
+        Message frames = new Message();
 
         //  If we're sending to a ROUTER, we add the address first
         if (socket.getZMQSocket().getType() == ZMQ.ROUTER) {
             assert address != null;
-            frames.pushFrame(address);
+            frames.addFrame(address);
         }
+
+        //  Now add the data frame
+        frames.addFrame(builder.build());
 
         return socket.send(frames);
     }
@@ -399,14 +574,25 @@ public class ZreSocket implements Closeable {
      * @return true if the message was sent, false otherwise
      */
     public boolean send(PingOkMessage message) {
+        //  Now serialize message into the frame
+        FrameBuilder builder = new FrameBuilder();
+        builder.putShort((short) (0xAAA0 | 1));
+        builder.putByte((byte) 7);       //  Message ID
+
+        builder.putByte((byte) 2);
+        builder.putShort((short) (int) message.sequence);
+
         //  Create multi-frame message
-        Message frames = message.toMessage();
+        Message frames = new Message();
 
         //  If we're sending to a ROUTER, we add the address first
         if (socket.getZMQSocket().getType() == ZMQ.ROUTER) {
             assert address != null;
-            frames.pushFrame(address);
+            frames.addFrame(address);
         }
+
+        //  Now add the data frame
+        frames.addFrame(builder.build());
 
         return socket.send(frames);
     }

@@ -27,7 +27,6 @@ package org.jyre.protocol;
 
 import org.zeromq.api.Message;
 import org.zeromq.api.Message.Frame;
-import org.zeromq.api.Message.FrameBuilder;
 
 /**
  * ShoutMessage class.
@@ -125,61 +124,5 @@ public class ShoutMessage {
     public ShoutMessage withContent(Frame frame) {
         this.content = frame;
         return this;
-    }
-
-    /**
-     * Serialize the SHOUT message.
-     *
-     * @return The serialized message
-     */
-    public Message toMessage() {
-        //  Serialize message into the frame
-        FrameBuilder builder = new FrameBuilder();
-        builder.putShort((short) (0xAAA0 | 1));
-        builder.putByte((byte) 3);       //  Message ID
-
-        builder.putByte((byte) 2);
-        builder.putShort((short) (int) sequence);
-        if (group != null) {
-            builder.putString(group);
-        } else {
-            builder.putString("");       //  Empty string
-        }
-
-        //  Create multi-frame message
-        Message frames = new Message();
-
-        //  Now add the data frame
-        frames.addFrame(builder.build());
-
-        //  Now add any frame fields, in order
-        frames.addFrame(content);
-
-        return frames;
-    }
-
-    /**
-     * Create a new SHOUT message.
-     *
-     * @param frames The message frames
-     * @return The deserialized message
-     */
-    public static ShoutMessage fromMessage(Message frames) {
-        ShoutMessage message = new ShoutMessage();
-        Frame needle = frames.popFrame();
-        message.version = (0xff) & needle.getByte();
-        if (message.version != 2) {
-            throw new IllegalArgumentException();
-        }
-        message.sequence = (0xffff) & needle.getShort();
-        message.group = needle.getChars();
-        //  Get next frame, leave current untouched
-        if (!frames.isEmpty()) {
-            message.content = frames.popFrame();
-        } else {
-            throw new IllegalArgumentException("Invalid message: missing frame: content");
-        }
-
-        return message;
     }
 }

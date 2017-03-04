@@ -25,10 +25,6 @@
  */
 package org.jyre.protocol;
 
-import org.zeromq.api.Message;
-import org.zeromq.api.Message.Frame;
-import org.zeromq.api.Message.FrameBuilder;
-
 /**
  * PingOkMessage class.
  */
@@ -65,47 +61,6 @@ public class PingOkMessage {
     public PingOkMessage withSequence(Integer sequence) {
         this.sequence = sequence;
         return this;
-    }
-
-    /**
-     * Serialize the PING_OK message.
-     *
-     * @return The serialized message
-     */
-    public Message toMessage() {
-        //  Serialize message into the frame
-        FrameBuilder builder = new FrameBuilder();
-        builder.putShort((short) (0xAAA0 | 1));
-        builder.putByte((byte) 7);       //  Message ID
-
-        builder.putByte((byte) 2);
-        builder.putShort((short) (int) sequence);
-
-        //  Create multi-frame message
-        Message frames = new Message();
-
-        //  Now add the data frame
-        frames.addFrame(builder.build());
-
-        return frames;
-    }
-
-    /**
-     * Create a new PING_OK message.
-     *
-     * @param frames The message frames
-     * @return The deserialized message
-     */
-    public static PingOkMessage fromMessage(Message frames) {
-        PingOkMessage message = new PingOkMessage();
-        Frame needle = frames.popFrame();
-        message.version = (0xff) & needle.getByte();
-        if (message.version != 2) {
-            throw new IllegalArgumentException();
-        }
-        message.sequence = (0xffff) & needle.getShort();
-
-        return message;
     }
 }
 

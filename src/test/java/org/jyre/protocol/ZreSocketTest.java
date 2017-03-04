@@ -1,19 +1,15 @@
 package org.jyre.protocol;
 
-import static org.junit.Assert.*;
-
-import org.junit.*;
-import org.jyre.protocol.HelloMessage;
-import org.jyre.protocol.JoinMessage;
-import org.jyre.protocol.LeaveMessage;
-import org.jyre.protocol.PingMessage;
-import org.jyre.protocol.PingOkMessage;
-import org.jyre.protocol.ShoutMessage;
-import org.jyre.protocol.WhisperMessage;
-import org.jyre.protocol.ZreSocket;
-import org.zeromq.api.*;
+import org.junit.Before;
+import org.junit.Test;
+import org.zeromq.api.Context;
 import org.zeromq.api.Message.Frame;
-import org.zeromq.jzmq.*;
+import org.zeromq.api.Socket;
+import org.zeromq.api.SocketType;
+import org.zeromq.jzmq.ManagedContext;
+
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 
 /**
  * Test ZreSocket.

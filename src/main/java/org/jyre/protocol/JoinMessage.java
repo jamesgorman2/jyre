@@ -25,10 +25,6 @@
  */
 package org.jyre.protocol;
 
-import org.zeromq.api.Message;
-import org.zeromq.api.Message.Frame;
-import org.zeromq.api.Message.FrameBuilder;
-
 /**
  * JoinMessage class.
  */
@@ -125,54 +121,5 @@ public class JoinMessage {
     public JoinMessage withStatus(Integer status) {
         this.status = status;
         return this;
-    }
-
-    /**
-     * Serialize the JOIN message.
-     *
-     * @return The serialized message
-     */
-    public Message toMessage() {
-        //  Serialize message into the frame
-        FrameBuilder builder = new FrameBuilder();
-        builder.putShort((short) (0xAAA0 | 1));
-        builder.putByte((byte) 4);       //  Message ID
-
-        builder.putByte((byte) 2);
-        builder.putShort((short) (int) sequence);
-        if (group != null) {
-            builder.putString(group);
-        } else {
-            builder.putString("");       //  Empty string
-        }
-        builder.putByte((byte) (int) status);
-
-        //  Create multi-frame message
-        Message frames = new Message();
-
-        //  Now add the data frame
-        frames.addFrame(builder.build());
-
-        return frames;
-    }
-
-    /**
-     * Create a new JOIN message.
-     *
-     * @param frames The message frames
-     * @return The deserialized message
-     */
-    public static JoinMessage fromMessage(Message frames) {
-        JoinMessage message = new JoinMessage();
-        Frame needle = frames.popFrame();
-        message.version = (0xff) & needle.getByte();
-        if (message.version != 2) {
-            throw new IllegalArgumentException();
-        }
-        message.sequence = (0xffff) & needle.getShort();
-        message.group = needle.getChars();
-        message.status = (0xff) & needle.getByte();
-
-        return message;
     }
 }
