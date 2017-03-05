@@ -73,33 +73,10 @@ import org.zeromq.ZMQ;
  * 
  * @author $(switches.author)
  */
-public class $(ClassName)Socket implements Closeable {
-    //  Protocol constants
-.for define
-    public static final int $(DEFINE.NAME:C)  = $(value);
-.endfor
-
-    //  Enumeration of message types
-    public enum MessageType {
-.for message
-.  if last()
-        $(MESSAGE.NAME)
-.  else
-        $(MESSAGE.NAME),
-.  endif
-.endfor
-    }
-.for class.field where type = "octets"
-    public static final int $(FIELD.NAME)_SIZE      = $(size);
-.endfor
-
+public class $(ClassName)Socket extends $(ClassName)Codec implements Closeable {
     //  Structure of our class
     private Socket socket;        //  Internal socket handle
     private Frame address;        //  Address of peer if any
-
-.for class.message
-    private $(java_class_name(message.name))Message $(java_var_name(message.name));
-.endfor
 
     /**
      * Create a new $(ClassName)Socket.
@@ -152,34 +129,152 @@ public class $(ClassName)Socket implements Closeable {
      * @return The MessageType of the received message
      */
     public MessageType receive() {
-        int id = 0;
-        Message frames;
-        Frame needle;
+        //  Read valid message frame from socket; we loop over any
+        //  garbage data we might receive from badly-connected peers
         MessageType type;
+        Message frames;
+        do {
+            frames = socket.receiveMessage();
+
+            //  If we're reading from a ROUTER socket, get address
+            if (socket.getZMQSocket().getType() == ZMQ.ROUTER) {
+                this.address = frames.popFrame();
+            }
+
+            //  Get and check protocol signature
+            type = deserialize(frames);
+        } while (type == null);          //  Protocol assertion, drop message if malformed or invalid
+
+        return type;
+    }
+.for message
+
+    /**
+     * Send the $(message.NAME) to the socket in one step.
+     *
+     * @param message The message to send
+     * @return true if the message was sent, false otherwise
+     */
+    public boolean send($(java_class_name(name))Message message) {
+        Message frames = serialize(message);
+
+        //  If we're sending to a ROUTER, we add the address first
+        if (socket.getZMQSocket().getType() == ZMQ.ROUTER) {
+            assert address != null;
+            frames.pushFrame(address);
+        }
+
+        return socket.send(frames);
+    }
+.endfor
+}
+
+.echo "Generating src/main/java/$(switches.package)/$(ClassName)Codec.java..."
+.directory.create("../src/main/java/$(switches.package)")
+.output "../src/main/java/$(switches.package)/$(ClassName)Codec.java"
+/* ============================================================================
+ * $(ClassName)Codec.java
+ *
+ * Generated codec class for $(ClassName)Codec
+ * ----------------------------------------------------------------------------
+ * $(string.trim (class->license.):block                                      )
+ * ============================================================================
+ */
+package $(PackageName);
+
+import java.util.*;
+import java.io.Closeable;
+import java.nio.ByteBuffer;
+
+import org.zeromq.api.*;
+import org.zeromq.api.Message.Frame;
+import org.zeromq.api.Message.FrameBuilder;
+import org.zeromq.ZMQ;
+
+/**
+ * $(ClassName)Codec class.
+ *
+ * The specification for this class is as follows:
+ * <pre class="text">
+.for message
+ *  $(NAME) - $(string.trim(.?''):left)
+.    for field
+.        if type = "number"
+.            size ?= 8
+ *    $(java_var_name(name))       $(type) $(size)
+.            if size = 1
+.                field.ctype = "int"
+.            elsif size = 2
+.                field.ctype = "int"
+.            elsif size = 4
+.                field.ctype = "long"
+.            elsif size = 8
+.                field.ctype = "long"
+.            else
+.                echo "E: bad size $(size) for $(java_var_name(name))"
+.            endif
+.        elsif type = "octets"
+ *    $(java_var_name(name))       $(type) [$(size)]
+.        else
+ *    $(java_var_name(name))       $(type)
+.        endif
+.        field.name = "$(field.name:c)"
+.        for class.field as cfield where cfield.name = field.name
+.            if cfield.type <> field.type
+.                echo "E: field '$(java_var_name(name))' must have same type everywhere"
+.            endif
+.        else
+.            copy field to class
+.        endfor
+.    endfor
+.endfor
+ * </pre>
+ *
+ * @author $(switches.author)
+ */
+public class $(ClassName)Codec {
+    //  Protocol constants
+.for define
+    public static final int $(DEFINE.NAME:C)  = $(value);
+.endfor
+
+    //  Enumeration of message types
+    public enum MessageType {
+.for message
+.  if last()
+        $(MESSAGE.NAME)
+.  else
+        $(MESSAGE.NAME),
+.  endif
+.endfor
+    }
+.for class.field where type = "octets"
+    public static final int $(FIELD.NAME)_SIZE      = $(size);
+.endfor
+
+.for class.message
+    protected $(java_class_name(message.name))Message $(java_var_name(message.name));
+.endfor
+
+    /**
+     * Deserialize a message.
+     *
+     * @return The MessageType of the deserialized message, or null
+     */
+    public MessageType deserialize(Message frames) {
+        MessageType type = null;
         try {
-            //  Read valid message frame from socket; we loop over any
-            //  garbage data we might receive from badly-connected peers
-            while (true) {
-                frames = socket.receiveMessage();
+            //  Read and parse command in frame
+            Frame needle = frames.popFrame();
 
-                //  If we're reading from a ROUTER socket, get address
-                if (socket.getZMQSocket().getType() == ZMQ.ROUTER) {
-                    this.address = frames.popFrame();
-                }
-
-                //  Read and parse command in frame
-                needle = frames.popFrame();
-
-                //  Get and check protocol signature
-                int signature = (0xffff) & needle.getShort();
-                if (signature == (0xAAA0 | $(class.signature)))
-                    break;               //  Valid signature
-
-                //  Protocol assertion, drop message
+            //  Get and check protocol signature
+            int signature = (0xffff) & needle.getShort();
+            if (signature != (0xaaa0 | $(class.signature))) {
+                return null;         //  Invalid signature
             }
 
             //  Get message id, which is first byte in frame
-            id = (0xff) & needle.getByte();
+            int id = (0xff) & needle.getByte();
             type = MessageType.values()[id-1];
             switch (type) {
 .for class.message
@@ -248,7 +343,7 @@ public class $(ClassName)Socket implements Closeable {
             return type;
         } catch (Exception ex) {
             //  Error returns
-            System.err.printf("E: Malformed message: %s\\n", id);
+            System.err.printf("E: Malformed message: %s\\n", type);
             ex.printStackTrace();
             return null;
         }
@@ -272,10 +367,10 @@ public class $(ClassName)Socket implements Closeable {
      * @param message The message to send
      * @return true if the message was sent, false otherwise
      */
-    public boolean send($(java_class_name(name))Message message) {
+    public Message serialize($(java_class_name(name))Message message) {
         //  Now serialize message into the frame
         FrameBuilder builder = new FrameBuilder();
-        builder.putShort((short) (0xAAA0 | $(class.signature)));
+        builder.putShort((short) (0xaaa0 | $(class.signature)));
         builder.putByte((byte) $(id));   //  Message ID
 
 .    for field
@@ -331,12 +426,6 @@ public class $(ClassName)Socket implements Closeable {
         //  Create multi-frame message
         Message frames = new Message();
 
-        //  If we're sending to a ROUTER, we add the address first
-        if (socket.getZMQSocket().getType() == ZMQ.ROUTER) {
-            assert address != null;
-            frames.addFrame(address);
-        }
-
         //  Now add the data frame
         frames.addFrame(builder.build());
 .    for field where type = "frame"
@@ -351,7 +440,7 @@ public class $(ClassName)Socket implements Closeable {
         frames.addFrames(message.$(field.name).getFrames());
 .    endfor
 
-        return socket.send(frames);
+        return frames;
     }
 .endfor
 }
