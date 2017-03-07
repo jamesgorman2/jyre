@@ -56,6 +56,8 @@ import org.zeromq.ZMQ;
 .            endif
 .        elsif type = "octets"
  *    $(java_var_name(name))       $(type) [$(size)]
+.        elsif type = "bytes"
+ *    $(java_var_name(name))       $(type) []
 .        else
  *    $(java_var_name(name))       $(type)
 .        endif
@@ -215,6 +217,8 @@ import org.zeromq.ZMQ;
 .            endif
 .        elsif type = "octets"
  *    $(java_var_name(name))       $(type) [$(size)]
+.        elsif type = "bytes"
+ *    $(java_var_name(name))       $(type) []
 .        else
  *    $(java_var_name(name))       $(type)
 .        endif
@@ -299,6 +303,8 @@ public class $(ClassName)Codec {
 .        elsif type = "octets"
                     message.$(java_var_name(name)) = needle.getBytes();
                     assert message.$(java_var_name(name)).length == $(size);
+.        elsif type = "bytes"
+                    message.$(java_var_name(name)) = needle.getBytes();
 .            if defined(field.value)
                     if (message.$(java_var_name(name)) != $(field.value:)) {
                         throw new IllegalArgumentException();
@@ -398,6 +404,8 @@ public class $(ClassName)Codec {
 .            endif
 .        elsif type = "octets"
         builder.putBytes(message.$(java_var_name(name)), 0, $(size));
+.        elsif type = "bytes"
+        builder.putBytes(message.$(java_var_name(name)));
 .        elsif type = "string"
 .            if defined(field.value)
         builder.putString("$(field.value:)");
@@ -484,6 +492,8 @@ public class $(MessageName)Message {
 .        endif
 .    elsif type = "octets"
     protected byte[] $(java_var_name(name)) = new byte[$(size)];
+.    elsif type = "bytes"
+    protected byte[] $(java_var_name(name)) = new byte[0];
 .    elsif type = "string"
     protected String $(java_var_name(name));
 .    elsif type = "strings"
@@ -579,6 +589,38 @@ public class $(MessageName)Message {
      */
     public $(MessageName)Message with$(java_class_name(Name))(byte[] $(java_var_name(name))) {
         System.arraycopy($(java_var_name(name)), 0, this.$(java_var_name(name)), 0, $(size));
+        return this;
+    }
+.    elsif type = "bytes"
+
+    /**
+     * Get the $(java_var_name(name)) field.
+     *
+     * @return The $(java_var_name(name)) field
+     */
+    public byte[] get$(java_class_name(Name))() {
+        return $(java_var_name(name));
+    }
+
+    /**
+     * Set the $(java_var_name(name)) field.
+     *
+     * @param $(java_var_name(name)) The $(java_var_name(name)) field
+     */
+    public void set$(java_class_name(Name))(byte[] $(java_var_name(name))) {
+        this.$(java_var_name(name)) = new byte[$(java_var_name(name)).length];
+        System.arraycopy($(java_var_name(name)), 0, this.$(java_var_name(name)), 0, $(java_var_name(name)).length);
+    }
+
+    /**
+     * Set the $(java_var_name(name)) field.
+     *
+     * @param $(java_var_name(name)) The $(java_var_name(name)) field
+     * @return The $(MessageName)Message, for method chaining
+     */
+    public $(MessageName)Message with$(java_class_name(Name))(byte[] $(java_var_name(name))) {
+        this.$(java_var_name(name)) = new byte[$(java_var_name(name)).length];
+        System.arraycopy($(java_var_name(name)), 0, this.$(java_var_name(name)), 0, $(java_var_name(name)).length);
         return this;
     }
 .    elsif type = "string"
@@ -921,6 +963,11 @@ public class $(ClassName)SocketTest {
         for (int i=0; i < $(ClassName)Socket.$(FIELD.NAME)_SIZE; i++)
             $(java_var_name(name))Data[i] = 123;
         message.set$(java_class_name(name))($(name)Data);
+.        elsif type = "bytes"
+        byte[] $(java_var_name(name))Data = new byte[2];
+        $(java_var_name(name))Data[0] = (byte) 0x7f;
+        $(java_var_name(name))Data[1] = (byte) 0x7c;
+        message.set$(java_class_name(name))($(name)Data);
 .        elsif type = "string"
         message.set$(java_class_name(name))("Life is short but Now lasts for ever");
 .        elsif type = "strings"
@@ -949,6 +996,9 @@ public class $(ClassName)SocketTest {
 .        elsif type = "octets"
         assertEquals(message.get$(java_class_name(name))()[0], 123);
         assertEquals(message.$(name)()[$(ClassName)Socket.$(FIELD.NAME)_SIZE - 1], 123);
+.        elsif type = "bytes"
+        assertEquals(message.get$(java_class_name(name))()[0], 0x7f);
+        assertEquals(message.get$(java_class_name(name))()[1], 0x7c);
 .        elsif type = "string"
         assertEquals(message.get$(java_class_name(name))(), "Life is short but Now lasts for ever");
 .        elsif type = "strings"
