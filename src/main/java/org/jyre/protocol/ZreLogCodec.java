@@ -92,7 +92,7 @@ public class ZreLogCodec {
                     message.node = (0xffff) & needle.getShort();
                     message.peer = (0xffff) & needle.getShort();
                     message.time = needle.getLong();
-                    message.data = needle.getChars();
+                    message.data = needle.getString();
                     break;
                 }
                 default:

@@ -74,7 +74,7 @@ public class ZreSocketTest {
         assertEquals(ZreSocket.MessageType.WHISPER, in.receive());
         message = in.getWhisper();
         assertEquals(message.getSequence(), Integer.valueOf(123));
-        assertTrue(message.getContent().getString().equals("Captcha Diem"));
+        assertTrue(message.getContent().toString().equals("Captcha Diem"));
         
         out.close();
         in.close();
@@ -95,7 +95,7 @@ public class ZreSocketTest {
         message = in.getShout();
         assertEquals(message.getSequence(), Integer.valueOf(123));
         assertEquals(message.getGroup(), "Life is short but Now lasts for ever");
-        assertTrue(message.getContent().getString().equals("Captcha Diem"));
+        assertTrue(message.getContent().toString().equals("Captcha Diem"));
         
         out.close();
         in.close();

@@ -543,7 +543,7 @@ class ZreInterfaceAgent implements Backgroundable, ZreConstants {
                 return; // Interrupted
             }
 
-            String identity = zre.getAddress().getString();
+            String identity = zre.getAddress().toString();
             ZrePeer peer = peers.get(identity);
             if (messageType == ZreSocket.MessageType.HELLO) {
                 // On HELLO we may create the peer if it's unknown

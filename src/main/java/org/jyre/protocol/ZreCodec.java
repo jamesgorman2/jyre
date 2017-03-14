@@ -121,10 +121,10 @@ public class ZreCodec {
                         throw new IllegalArgumentException();
                     }
                     message.sequence = (0xffff) & needle.getShort();
-                    message.endpoint = needle.getChars();
+                    message.endpoint = needle.getString();
                     message.groups = needle.getClobs();
                     message.status = (0xff) & needle.getByte();
-                    message.name = needle.getChars();
+                    message.name = needle.getString();
                     message.headers = needle.getMap();
                     break;
                 }
@@ -150,7 +150,7 @@ public class ZreCodec {
                         throw new IllegalArgumentException();
                     }
                     message.sequence = (0xffff) & needle.getShort();
-                    message.group = needle.getChars();
+                    message.group = needle.getString();
                     //  Get next frame, leave current untouched
                     if (!frames.isEmpty()) {
                         message.content = frames.popFrame();
@@ -166,7 +166,7 @@ public class ZreCodec {
                         throw new IllegalArgumentException();
                     }
                     message.sequence = (0xffff) & needle.getShort();
-                    message.group = needle.getChars();
+                    message.group = needle.getString();
                     message.status = (0xff) & needle.getByte();
                     break;
                 }
@@ -177,7 +177,7 @@ public class ZreCodec {
                         throw new IllegalArgumentException();
                     }
                     message.sequence = (0xffff) & needle.getShort();
-                    message.group = needle.getChars();
+                    message.group = needle.getString();
                     message.status = (0xff) & needle.getByte();
                     break;
                 }
