@@ -68,7 +68,7 @@ public class ZreSocketTest {
         
         WhisperMessage message = new WhisperMessage();
         message.setSequence(123);
-        message.setContent(new Frame("Captcha Diem"));
+        message.setContent(Frame.of("Captcha Diem"));
         
         assertTrue(out.send(message));
         assertEquals(ZreSocket.MessageType.WHISPER, in.receive());
@@ -88,7 +88,7 @@ public class ZreSocketTest {
         ShoutMessage message = new ShoutMessage();
         message.setSequence(123);
         message.setGroup("Life is short but Now lasts for ever");
-        message.setContent(new Frame("Captcha Diem"));
+        message.setContent(Frame.of("Captcha Diem"));
         
         assertTrue(out.send(message));
         assertEquals(ZreSocket.MessageType.SHOUT, in.receive());

@@ -977,9 +977,9 @@ public class $(ClassName)SocketTest {
         message.put$(stem_s(java_class_name(name)))("Name", "Brutus");
         message.put$(stem_s(java_class_name(name)))("Age", 43);
 .        elsif type = "frame"
-        message.set$(java_class_name(name))(new Frame("Captcha Diem"));
+        message.set$(java_class_name(name))(Frame.of("Captcha Diem"));
 .        elsif type = "msg"
-        message.set$(java_class_name(name))(new new Message("Hello, World"));
+        message.set$(java_class_name(name))(new Message("Hello, World"));
 .        endif
 .    endfor
         

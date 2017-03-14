@@ -12,6 +12,7 @@ import org.zeromq.api.Backgroundable;
 import org.zeromq.api.Context;
 import org.zeromq.api.LoopAdapter;
 import org.zeromq.api.Message;
+import org.zeromq.api.Message.Frame;
 import org.zeromq.api.Pollable;
 import org.zeromq.api.PollerType;
 import org.zeromq.api.Reactor;
@@ -28,15 +29,15 @@ import java.util.Map;
 import java.util.UUID;
 
 class ZreInterfaceAgent implements Backgroundable, ZreConstants {
-    private static final Message.Frame ENTER   = new Message.Frame("ENTER");
-    private static final Message.Frame JOIN    = new Message.Frame("JOIN");
-    private static final Message.Frame WHISPER = new Message.Frame("WHISPER");
-    private static final Message.Frame SHOUT   = new Message.Frame("SHOUT");
-    private static final Message.Frame LEAVE   = new Message.Frame("LEAVE");
-    private static final Message.Frame EXIT    = new Message.Frame("EXIT");
-    private static final Message.Frame EVASIVE = new Message.Frame("EVASIVE");
-    private static final Message.Frame OK      = new Message.Frame("OK");
-    private static final Message.Frame ERROR   = new Message.Frame("ERROR");
+    private static final Frame ENTER   = Frame.of("ENTER");
+    private static final Frame JOIN    = Frame.of("JOIN");
+    private static final Frame WHISPER = Frame.of("WHISPER");
+    private static final Frame SHOUT   = Frame.of("SHOUT");
+    private static final Frame LEAVE   = Frame.of("LEAVE");
+    private static final Frame EXIT    = Frame.of("EXIT");
+    private static final Frame EVASIVE = Frame.of("EVASIVE");
+    private static final Frame OK      = Frame.of("OK");
+    private static final Frame ERROR   = Frame.of("ERROR");
 
     private Context context;
     private Socket pipe;
