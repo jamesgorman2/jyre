@@ -1,1 +1,1 @@
-gsl -q -script:zmq_socket -package:org/jyre/protocol -author:$USER zre.xml zre_log.xml
+gsl -q -script:zmq_socket -author:$USER zre.xml zre_log.xml

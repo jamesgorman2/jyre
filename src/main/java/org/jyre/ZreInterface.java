@@ -187,7 +187,12 @@ public class ZreInterface {
         return inbox;
     }
 
-    public Message receive() {
+    public ZreEvent receive() {
+        Message message = inbox.receiveMessage();
+        return message == null ? null : ZreEvent.newZreEvent(message);
+    }
+
+    public Message receiveMessage() {
         return inbox.receiveMessage();
     }
 

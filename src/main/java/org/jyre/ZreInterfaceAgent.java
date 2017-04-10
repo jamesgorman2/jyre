@@ -614,7 +614,7 @@ class ZreInterfaceAgent implements Backgroundable, ZreConstants {
                 peer.join(group);
 
                 // Now tell the caller about the peers group
-                outbox.send(new Message(JOIN).addString(peer.getIdentity()).addString(name));
+                outbox.send(new Message(JOIN).addString(peer.getIdentity()).addString(peer.getName()).addString(group.getName()));
             }
 
             // Hello command holds latest status of peer
@@ -630,7 +630,7 @@ class ZreInterfaceAgent implements Backgroundable, ZreConstants {
                 return;
             }
 
-            outbox.send(new Message(WHISPER).addString(peer.getIdentity()).addFrame(whisper.getContent()));
+            outbox.send(new Message(WHISPER).addString(peer.getIdentity()).addString(peer.getName()).addFrame(whisper.getContent()));
         }
 
         private void onShout(ZrePeer peer) {
@@ -639,7 +639,7 @@ class ZreInterfaceAgent implements Backgroundable, ZreConstants {
                 return;
             }
 
-            outbox.send(new Message(SHOUT).addString(peer.getIdentity()).addString(shout.getGroup()).addFrame(shout.getContent()));
+            outbox.send(new Message(SHOUT).addString(peer.getIdentity()).addString(peer.getName()).addString(shout.getGroup()).addFrame(shout.getContent()));
         }
 
         private void onPing(ZrePeer peer) {
@@ -666,7 +666,7 @@ class ZreInterfaceAgent implements Backgroundable, ZreConstants {
             assert (join.getStatus() == peer.getStatus());
 
             // Now tell the caller about the peer joined a group
-            outbox.send(new Message(JOIN).addString(peer.getIdentity()).addString(name));
+            outbox.send(new Message(JOIN).addString(peer.getIdentity()).addString(peer.getName()).addString(group.getName()));
         }
 
         private void onLeave(ZrePeer peer) {
@@ -681,7 +681,7 @@ class ZreInterfaceAgent implements Backgroundable, ZreConstants {
             assert (leave.getStatus() == peer.getStatus());
 
             // Now tell the caller about the peer joined a group
-            outbox.send(new Message(LEAVE).addString(peer.getIdentity()).addString(name));
+            outbox.send(new Message(LEAVE).addString(peer.getIdentity()).addString(peer.getName()).addString(group.getName()));
         }
 
         private boolean checkSequence(ZrePeer peer, int sequence) {
@@ -758,7 +758,7 @@ class ZreInterfaceAgent implements Backgroundable, ZreConstants {
                     peer.send(new PingMessage());
 
                     logger.info(ZreLogger.Event.OTHER, identity, "Peer %s is being evasive", identity);
-                    outbox.send(new Message(EVASIVE).addString(identity));
+                    outbox.send(new Message(EVASIVE).addString(peer.getIdentity()).addString(peer.getName()));
                 }
             }
         }

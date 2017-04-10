@@ -14,26 +14,22 @@ public class ZreInterfaceTest {
             inf.start();
 
             while (true) {
-                Message incoming = inf.receive();
+                ZreEvent event = inf.receive();
 
-                if (incoming == null)       // Interrupted
+                if (event == null)       // Interrupted
                     break;
 
                 //  If new peer, say hello to it and wait for it to answer us
-                String event = incoming.popString();
-                switch (event) {
-                    case "ENTER": {
-                        String identity = incoming.popString();
-                        System.out.printf("I: [%s] peer entered\n", identity);
+                switch (event.getEventType()) {
+                    case ENTER: {
+                        System.out.printf("I: [%s] peer entered\n", event.getPeer());
                         break;
                     }
-                    case "WHISPER": {
-                        String peer = incoming.popString();
-                        String msg = incoming.popString();
-
+                    case WHISPER: {
+                        String msg = event.getContent().popString();
                         if (msg.equals("HELLO")) {
                             Message outgoing = new Message("WORLD");
-                            inf.whisper(peer, outgoing);
+                            inf.whisper(event.getPeer(), outgoing);
                         }
 
                         if (msg.equals("QUIT")) {
@@ -42,14 +38,12 @@ public class ZreInterfaceTest {
                         }
                         break;
                     }
-                    case "SHOUT": {
-                        String identity = incoming.popString();
-                        incoming.popString();
-                        String msg = incoming.popString();
+                    case SHOUT: {
+                        String msg = event.getContent().popString();
 
                         if (msg.equals("HELLO")) {
                             Message outgoing = new Message("WORLD");
-                            inf.whisper(identity, outgoing);
+                            inf.whisper(event.getPeer(), outgoing);
                         }
 
                         if (msg.equals("QUIT")) {
@@ -58,18 +52,12 @@ public class ZreInterfaceTest {
                         }
                         break;
                     }
-                    case "JOIN": {
-                        incoming.popString();
-                        String group = incoming.popString();
-
-                        inf.join(group);
+                    case JOIN: {
+                        inf.join(event.getGroup());
                         break;
                     }
-                    case "LEAVE": {
-                        incoming.popString();
-                        String group = incoming.popString();
-
-                        inf.leave(group);
+                    case LEAVE: {
+                        inf.leave(event.getGroup());
                         break;
                     }
                 }
@@ -85,20 +73,18 @@ public class ZreInterfaceTest {
         ZreInterface inf = new ZreInterface();
         inf.start();
 
-        Message incoming = inf.receive();
+        ZreEvent event = inf.receive();
+        String peer = event.getPeer();
 
-        String event = incoming.popString();
-        assertThat(event, is("ENTER"));
-        String peer = incoming.popString();
+        assertThat(event.getEventType(), is(ZreEventType.ENTER));
 
         Message outgoing = new Message("HELLO");
-        inf.whisper(peer, outgoing);
+        inf.whisper(event.getPeer(), outgoing);
 
-        incoming = inf.receive();
-        event = incoming.popString();
-        assertThat(event, is("WHISPER"));
-        assertThat(incoming.popString(), is(peer));
-        assertThat(incoming.popString(), is("WORLD"));
+        event = inf.receive();
+        assertThat(event.getEventType(), is(ZreEventType.WHISPER));
+        assertThat(event.getPeer(), is(peer));
+        assertThat(event.getContent().popString(), is("WORLD"));
 
         outgoing = new Message("QUIT");
         inf.whisper(peer, outgoing);
@@ -118,30 +104,26 @@ public class ZreInterfaceTest {
         inf.start();
         inf.join(group);
 
-        Message incoming = inf.receive();
+        ZreEvent event = inf.receive();
 
-        String event = incoming.popString();
-        assertThat(event, is("ENTER"));
-        String peer = incoming.popString();
+        assertThat(event.getEventType(), is(ZreEventType.ENTER));
+        String peer = event.getPeer();
 
-        incoming = inf.receive();
-        event = incoming.popString();
-        assertThat(event, is("JOIN"));
+        event = inf.receive();
+        assertThat(event.getEventType(), is(ZreEventType.JOIN));
 
         Message outgoing = new Message("HELLO");
         inf.shout(group, outgoing);
 
-        incoming = inf.receive();
-        event = incoming.popString();
-        assertThat(event, is("WHISPER"));
-        assertThat(incoming.popString(), is(peer));
-        assertThat(incoming.popString(), is("WORLD"));
+        event = inf.receive();
+        assertThat(event.getEventType(), is(ZreEventType.WHISPER));
+        assertThat(event.getPeer(), is(peer));
+        assertThat(event.getContent().popString(), is("WORLD"));
 
         inf.leave(group);
 
-        incoming = inf.receive();
-        event = incoming.popString();
-        assertThat(event, is("LEAVE"));
+        event = inf.receive();
+        assertThat(event.getEventType(), is(ZreEventType.LEAVE));
 
         outgoing = new Message("QUIT");
         inf.whisper(peer, outgoing);
@@ -163,19 +145,19 @@ public class ZreInterfaceTest {
         ZreInterface inf = new ZreInterface();
         inf.start();
 
-        assertThat(inf.receive().popString(), is("ENTER"));
-        assertThat(inf.receive().popString(), is("ENTER"));
+        assertThat(inf.receive().getEventType(), is(ZreEventType.ENTER));
+        assertThat(inf.receive().getEventType(), is(ZreEventType.ENTER));
 
         inf.join(group);
 
-        assertThat(inf.receive().popString(), is("JOIN"));
-        assertThat(inf.receive().popString(), is("JOIN"));
+        assertThat(inf.receive().getEventType(), is(ZreEventType.JOIN));
+        assertThat(inf.receive().getEventType(), is(ZreEventType.JOIN));
 
         Message outgoing = new Message("HELLO");
         inf.shout(group, outgoing);
 
-        assertThat(inf.receive().popString(), is("WHISPER"));
-        assertThat(inf.receive().popString(), is("WHISPER"));
+        assertThat(inf.receive().getEventType(), is(ZreEventType.WHISPER));
+        assertThat(inf.receive().getEventType(), is(ZreEventType.WHISPER));
 
         outgoing = new Message("QUIT");
         inf.shout(group, outgoing);
@@ -191,13 +173,14 @@ public class ZreInterfaceTest {
         ping.start();
 
         ZreInterface inf = new ZreInterface();
+        inf.setEvasiveTimeout(1);
+        inf.setExpiredTimeout(1);
         inf.start();
 
-        Message incoming = inf.receive();
+        ZreEvent event = inf.receive();
 
-        String event = incoming.popString();
-        assertThat(event, is("ENTER"));
-        String peer = incoming.popString();
+        assertThat(event.getEventType(), is(ZreEventType.ENTER));
+        String peer = event.getPeer();
 
         Message outgoing = new Message("QUIT");
         inf.whisper(peer, outgoing);
@@ -208,18 +191,16 @@ public class ZreInterfaceTest {
         ping.join();
 
         // will take PEER_EVASIVE milliseconds
-        incoming = inf.receive();
+        event = inf.receive();
 
-        event = incoming.popString();
-        assertThat(event, is("EVASIVE"));
-        assertThat(incoming.popString(), is(peer));
+        assertThat(event.getEventType(), is(ZreEventType.EVASIVE));
+        assertThat(event.getPeer(), is(peer));
 
         // will take PEER_EXPIRED milliseconds
-        incoming = inf.receive();
+        event = inf.receive();
 
-        event = incoming.popString();
-        assertThat(event, is("EXIT"));
-        assertThat(incoming.popString(), is(peer));
+        assertThat(event.getEventType(), is(ZreEventType.EXIT));
+        assertThat(event.getPeer(), is(peer));
 
         inf.close();
     }
