@@ -29,6 +29,7 @@ import java.io.Closeable;
 import org.zeromq.api.Message;
 import org.zeromq.api.Message.Frame;
 import org.zeromq.api.Message.FrameBuilder;
+import org.zeromq.api.Socket;
 import org.zeromq.ZMQ;
 
 /**
