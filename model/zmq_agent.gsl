@@ -8,11 +8,14 @@ generate_dot()
 
 #   Set globals
 global.ClassName = java_class_name(class.name)
-global.PackageName = java_package_name(switches.package)
+global.PackageName = java_package_name(class.package)
 
 #   Load message structures for this engine
 global.proto = xml.load_file (class.protocol_class + ".xml")
-class.proto = class.protocol_class
+#   Hack to set proto class name, as java_class_name is not working or there's a bug...
+class.proto = "$(class.Protocol_class)"
+global.ProtocolName = "$(string.replace(class.proto, '_'))"
+global.ProtocolPackageName = java_package_name(proto.package)
 
 #  Collect all events and actions at class level
 for class.state
@@ -64,9 +67,31 @@ for class.state where defined (inherit)
 endfor
 
 .endtemplate
-.echo "Generating src/main/java/$(switches.package)/$(ClassName)Agent.java..."
-.directory.create("../src/main/java/$(switches.package)")
-.output "../src/main/java/$(switches.package)/$(ClassName)Agent.java"
+.macro output_case_body()
+.       for action
+.           if name = "send"
+                        zre.whisper(zreEvent.getPeer(), codec.serialize($(java_var_name(action.message))Message));
+.           elsif name = "stop"
+                        reactor.cancel(this);
+.           else
+                        handler.$(java_var_name(name))(this);
+.           endif
+.       endfor
+.       if defined (event.next)
+                        state = State.$(NEXT:C);
+.       endif
+.       if defined (event.trigger)
+                        next = Event.$(TRIGGER:C);
+.       elsif name = "whisper" | name = "shout"
+                        messageType = codec.deserialize(zreEvent.getContent());
+                        try {
+                            next = Event.valueOf(messageType.name());
+                        } catch (IllegalArgumentException ignored) {}
+.       endif
+.endmacro
+.echo "Generating src/main/java/$(class.package)/$(ClassName)Agent.java..."
+.directory.create("../src/main/java/$(class.package)")
+.output "../src/main/java/$(class.package)/$(ClassName)Agent.java"
 /* ============================================================================
  * $(ClassName)Agent.java
  *
@@ -77,8 +102,11 @@ endfor
  */
 package $(PackageName);
 
+import $(ProtocolPackageName).*;
+
+import org.jyre.ZreEvent;
+import org.jyre.ZreInterface;
 import org.zeromq.api.LoopAdapter;
-import org.zeromq.api.Message;
 import org.zeromq.api.Reactor;
 import org.zeromq.api.Socket;
 
@@ -88,31 +116,45 @@ import org.zeromq.api.Socket;
  * @author $(switches.author)
  */
 public class $(ClassName)Agent extends LoopAdapter {
+    // Handle of the ZreInterface client
+    private ZreInterface zre;
+
     // Application callback handler
     private Handler handler;
 
     // Structure of our class
     private Reactor reactor;
     private Socket socket;
-    private Message message;
+    private ZreEvent zreEvent;
+    private $(ProtocolName)Codec codec = new $(ProtocolName)Codec();
+    private $(ProtocolName)Codec.MessageType messageType;
     private State state = State.START;
     private Event event;
     private Event next;
 
-    public $(ClassName)Agent(Handler handler) {
+.for proto.message
+    private $(java_class_name(message))Message $(java_var_name(message))Message;
+.endfor
+
+    public $(ClassName)Agent(ZreInterface zre, Handler handler) {
+        this.zre = zre;
         this.handler = handler;
     }
 
-    public Reactor getReactor() {
-        return reactor;
+    public ZreEvent getZreEvent() {
+        return zreEvent;
+    }
+
+    public $(ProtocolName)Codec getCodec() {
+        return codec;
     }
 
     public Socket getSocket() {
         return socket;
     }
 
-    public Message getMessage() {
-        return message;
+    public $(ProtocolName)Codec.MessageType getMessageType() {
+        return messageType;
     }
 
     public State getState() {
@@ -136,8 +178,8 @@ public class $(ClassName)Agent extends LoopAdapter {
         this.reactor = reactor;
         this.socket = socket;
 
-        message = socket.receiveMessage();
-        next = Event.valueOf(message.popString());
+        zreEvent = zre.receive();
+        next = Event.valueOf(zreEvent.getEventType().name());
         while (next != null) {
             event = next;
             next = null;
@@ -152,41 +194,13 @@ public class $(ClassName)Agent extends LoopAdapter {
                 switch (event) {
 .   for event where name <> "*"
                     case $(NAME:C): {
-.       for action
-.           if name = "send"
-                        // TODO: send $(MESSAGE)
-.           elsif name = "stop"
-                        reactor.cancel(this);
-.           else
-                        handler.$(java_var_name(name))(this);
-.           endif
-.       endfor
-.       if defined (event.next)
-                        state = State.$(NEXT:C);
-.       endif
-.       if defined (event.trigger)
-                        next = Event.$(TRIGGER:C);
-.       endif
+.       output_case_body()
                         break;
                     }
 .   endfor
 .   for event where name = "*"
                     default: {
-.       for action
-.           if name = "send"
-                        // TODO: send $(MESSAGE)
-.           elsif name = "stop"
-                        reactor.cancel(this);
-.           else
-                        handler.$(java_var_name(name))(this);
-.           endif
-.       endfor
-.       if defined (event.next)
-                        state = State.$(NEXT:C);
-.       endif
-.       if defined (event.trigger)
-                        next = Event.$(TRIGGER:C);
-.       endif
+.       output_case_body()
                         break;
                     }
 .   endfor
