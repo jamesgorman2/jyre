@@ -7,6 +7,7 @@ import org.jyre.protocol.PingMessage;
 import org.jyre.protocol.PingOkMessage;
 import org.jyre.protocol.ShoutMessage;
 import org.jyre.protocol.WhisperMessage;
+import org.jyre.protocol.ZreCodec;
 import org.jyre.protocol.ZreSocket;
 import org.zeromq.api.Context;
 import org.zeromq.api.Message;
@@ -17,6 +18,13 @@ import java.util.List;
 import java.util.Map;
 
 class ZrePeer {
+    /**
+     * Valid peer states.
+     */
+    public enum State {
+        DISCONNECTED, CONNECTED, READY, EVASIVE, EXPIRING, EXPIRED
+    }
+
     private Context context;
     private ZreSocket socket;
     private String identity;
@@ -38,52 +46,59 @@ class ZrePeer {
     }
 
     public void send(HelloMessage message) {
+        if (state == State.DISCONNECTED) return;
         assert socket != null;
-        if (!socket.send(message.withSequence(incrementSentSequence()))) {
-            System.err.printf("E: Failed to send %s message\n", HelloMessage.MESSAGE_TYPE);
-        }
+
+        boolean result = socket.send(message.withSequence(incrementSentSequence()));
+        checkSendResult(result, ZreCodec.MessageType.HELLO);
     }
 
     public void send(JoinMessage message) {
+        if (state == State.DISCONNECTED) return;
         assert socket != null;
-        if (!socket.send(message.withSequence(incrementSentSequence()))) {
-            System.err.printf("E: Failed to send %s message\n", JoinMessage.MESSAGE_TYPE);
-        }
+
+        boolean result = socket.send(message.withSequence(incrementSentSequence()));
+        checkSendResult(result, ZreCodec.MessageType.JOIN);
     }
 
     public void send(LeaveMessage message) {
+        if (state == State.DISCONNECTED) return;
         assert socket != null;
-        if (!socket.send(message.withSequence(incrementSentSequence()))) {
-            System.err.printf("E: Failed to send %s message\n", LeaveMessage.MESSAGE_TYPE);
-        }
+
+        boolean result = socket.send(message.withSequence(incrementSentSequence()));
+        checkSendResult(result, ZreCodec.MessageType.LEAVE);
     }
 
     public void send(PingMessage message) {
+        if (state == State.DISCONNECTED) return;
         assert socket != null;
-        if (!socket.send(message.withSequence(incrementSentSequence()))) {
-            System.err.printf("E: Failed to send %s message\n", PingMessage.MESSAGE_TYPE);
-        }
+
+        boolean result = socket.send(message.withSequence(incrementSentSequence()));
+        checkSendResult(result, ZreCodec.MessageType.PING);
     }
 
     public void send(PingOkMessage message) {
+        if (state == State.DISCONNECTED) return;
         assert socket != null;
-        if (!socket.send(message.withSequence(incrementSentSequence()))) {
-            System.err.printf("E: Failed to send %s message\n", PingOkMessage.MESSAGE_TYPE);
-        }
+
+        boolean result = socket.send(message.withSequence(incrementSentSequence()));
+        checkSendResult(result, ZreCodec.MessageType.PING_OK);
     }
 
     public void send(ShoutMessage message) {
+        if (state == State.DISCONNECTED) return;
         assert socket != null;
-        if (!socket.send(message.withSequence(incrementSentSequence()))) {
-            System.err.printf("E: Failed to send %s message\n", ShoutMessage.MESSAGE_TYPE);
-        }
+
+        boolean result = socket.send(message.withSequence(incrementSentSequence()));
+        checkSendResult(result, ZreCodec.MessageType.SHOUT);
     }
 
     public void send(WhisperMessage message) {
+        if (state == State.DISCONNECTED) return;
         assert socket != null;
-        if (!socket.send(message.withSequence(incrementSentSequence()))) {
-            System.err.printf("E: Failed to send %s message\n", WhisperMessage.MESSAGE_TYPE);
-        }
+
+        boolean result = socket.send(message.withSequence(incrementSentSequence()));
+        checkSendResult(result, ZreCodec.MessageType.WHISPER);
     }
 
     /**
@@ -141,25 +156,15 @@ class ZrePeer {
         onUpdate();
     }
 
-    private int incrementSentSequence() {
-        if (++sentSequence > ZreConstants.USHORT_MAX) {
-            sentSequence = 0;
-        }
-
-        return sentSequence;
-    }
-
     public boolean isValidSequence(int sequence) {
-        if (++recvSequence > ZreConstants.USHORT_MAX) {
-            recvSequence = 0;
+        int newSequence = recvSequence + 1;
+        if (newSequence > ZreConstants.USHORT_MAX) {
+            newSequence = 0;
         }
 
-        boolean isValid = recvSequence == sequence;
-        if (!isValid) {
-            // rollback increment
-            if (--recvSequence < 0) {
-                recvSequence = ZreConstants.USHORT_MAX;
-            }
+        boolean isValid = newSequence == sequence;
+        if (isValid) {
+            recvSequence = newSequence;
         }
 
         return isValid;
@@ -315,10 +320,18 @@ class ZrePeer {
         return state;
     }
 
-    /**
-     * Valid peer states.
-     */
-    public enum State {
-        DISCONNECTED, CONNECTED, READY, EVASIVE, EXPIRING, EXPIRED
+    private int incrementSentSequence() {
+        if (++sentSequence > ZreConstants.USHORT_MAX) {
+            sentSequence = 0;
+        }
+
+        return sentSequence;
+    }
+
+    private void checkSendResult(boolean result, ZreCodec.MessageType messageType) {
+        if (!result) {
+            System.err.printf("E: Failed to send %s message\n", messageType);
+            disconnect();
+        }
     }
 }
