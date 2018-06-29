@@ -1,7 +1,7 @@
 /* ============================================================================
  * ZreCodec.java
  *
- * Generated codec class for ZreCodec
+ * Generated codec class for ZreSocket
  * ----------------------------------------------------------------------------
  * Copyright (c) 1991-2012 iMatix Corporation -- http://www.imatix.com     
  * Copyright other contributors as noted in the AUTHORS file.              
@@ -73,6 +73,8 @@ import org.zeromq.api.Message.FrameBuilder;
  */
 public class ZreCodec {
     //  Protocol constants
+    public interface Constants {
+    }
 
     //  Enumeration of message types
     public enum MessageType {
@@ -107,7 +109,7 @@ public class ZreCodec {
             //  Get and check protocol signature
             int signature = (0xffff) & needle.getShort();
             if (signature != (0xaaa0 | 1)) {
-                return null;         //  Invalid signature
+                return null;             //  Invalid signature
             }
 
             //  Get message id, which is first byte in frame
@@ -292,23 +294,23 @@ public class ZreCodec {
         if (message.endpoint != null) {
             builder.putString(message.endpoint);
         } else {
-            builder.putString("");        //  Empty string
+            builder.putString("");       //  Empty string
         }
         if (message.groups != null) {
             builder.putClobs(message.groups);
         } else {
-            builder.putInt(0);   //  Empty string array
+            builder.putInt(0);           //  Empty string array
         }
         builder.putByte((byte) (int) message.status);
         if (message.name != null) {
             builder.putString(message.name);
         } else {
-            builder.putString("");        //  Empty string
+            builder.putString("");       //  Empty string
         }
         if (message.headers != null) {
             builder.putMap(message.headers);
         } else {
-            builder.putInt(0);   //  Empty hash
+            builder.putInt(0);           //  Empty hash
         }
 
         //  Create multi-frame message
@@ -364,7 +366,7 @@ public class ZreCodec {
         if (message.group != null) {
             builder.putString(message.group);
         } else {
-            builder.putString("");        //  Empty string
+            builder.putString("");       //  Empty string
         }
 
         //  Create multi-frame message
@@ -396,7 +398,7 @@ public class ZreCodec {
         if (message.group != null) {
             builder.putString(message.group);
         } else {
-            builder.putString("");        //  Empty string
+            builder.putString("");       //  Empty string
         }
         builder.putByte((byte) (int) message.status);
 
@@ -426,7 +428,7 @@ public class ZreCodec {
         if (message.group != null) {
             builder.putString(message.group);
         } else {
-            builder.putString("");        //  Empty string
+            builder.putString("");       //  Empty string
         }
         builder.putByte((byte) (int) message.status);
 

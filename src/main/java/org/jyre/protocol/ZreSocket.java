@@ -25,12 +25,10 @@
  */
 package org.jyre.protocol;
 
-import org.zeromq.ZMQ;
 import org.zeromq.api.Message;
 import org.zeromq.api.Message.Frame;
 import org.zeromq.api.Socket;
-
-import java.io.Closeable;
+import org.zeromq.ZMQ;
 
 /**
  * ZreSocket class.
@@ -74,10 +72,11 @@ import java.io.Closeable;
  * 
  * @author sriesenberg
  */
-public class ZreSocket extends ZreCodec implements Closeable {
+public class ZreSocket implements ZreCodec.Constants, java.io.Closeable {
     //  Structure of our class
-    private Socket socket;        //  Internal socket handle
-    private Frame address;        //  Address of peer if any
+    private Socket socket;               //  Internal socket handle
+    private ZreCodec codec;              //  Serialization codec
+    private Frame address;               //  Address of peer if any
 
     /**
      * Create a new ZreSocket.
@@ -87,6 +86,7 @@ public class ZreSocket extends ZreCodec implements Closeable {
     public ZreSocket(Socket socket) {
         assert socket != null;
         this.socket = socket;
+        this.codec = new ZreCodec();
     }
 
     /**
@@ -129,10 +129,10 @@ public class ZreSocket extends ZreCodec implements Closeable {
      *
      * @return The MessageType of the received message
      */
-    public MessageType receive() {
+    public ZreCodec.MessageType receive() {
         //  Read valid message frame from socket; we loop over any
         //  garbage data we might receive from badly-connected peers
-        MessageType type;
+        ZreCodec.MessageType type;
         Message frames;
         do {
             frames = socket.receiveMessage();
@@ -143,10 +143,73 @@ public class ZreSocket extends ZreCodec implements Closeable {
             }
 
             //  Get and check protocol signature
-            type = deserialize(frames);
+            type = codec.deserialize(frames);
         } while (type == null);          //  Protocol assertion, drop message if malformed or invalid
 
         return type;
+    }
+
+    /**
+     * Get a HELLO message from the socket.
+     *
+     * @return The HelloMessage last received on this socket
+     */
+    public HelloMessage getHello() {
+        return codec.hello;
+    }
+
+    /**
+     * Get a WHISPER message from the socket.
+     *
+     * @return The WhisperMessage last received on this socket
+     */
+    public WhisperMessage getWhisper() {
+        return codec.whisper;
+    }
+
+    /**
+     * Get a SHOUT message from the socket.
+     *
+     * @return The ShoutMessage last received on this socket
+     */
+    public ShoutMessage getShout() {
+        return codec.shout;
+    }
+
+    /**
+     * Get a JOIN message from the socket.
+     *
+     * @return The JoinMessage last received on this socket
+     */
+    public JoinMessage getJoin() {
+        return codec.join;
+    }
+
+    /**
+     * Get a LEAVE message from the socket.
+     *
+     * @return The LeaveMessage last received on this socket
+     */
+    public LeaveMessage getLeave() {
+        return codec.leave;
+    }
+
+    /**
+     * Get a PING message from the socket.
+     *
+     * @return The PingMessage last received on this socket
+     */
+    public PingMessage getPing() {
+        return codec.ping;
+    }
+
+    /**
+     * Get a PING_OK message from the socket.
+     *
+     * @return The PingOkMessage last received on this socket
+     */
+    public PingOkMessage getPingOk() {
+        return codec.pingOk;
     }
 
     /**
@@ -156,7 +219,7 @@ public class ZreSocket extends ZreCodec implements Closeable {
      * @return true if the message was sent, false otherwise
      */
     public boolean send(HelloMessage message) {
-        Message frames = serialize(message);
+        Message frames = codec.serialize(message);
 
         //  If we're sending to a ROUTER, we add the address first
         if (socket.getZMQSocket().getType() == ZMQ.ROUTER) {
@@ -174,7 +237,7 @@ public class ZreSocket extends ZreCodec implements Closeable {
      * @return true if the message was sent, false otherwise
      */
     public boolean send(WhisperMessage message) {
-        Message frames = serialize(message);
+        Message frames = codec.serialize(message);
 
         //  If we're sending to a ROUTER, we add the address first
         if (socket.getZMQSocket().getType() == ZMQ.ROUTER) {
@@ -192,7 +255,7 @@ public class ZreSocket extends ZreCodec implements Closeable {
      * @return true if the message was sent, false otherwise
      */
     public boolean send(ShoutMessage message) {
-        Message frames = serialize(message);
+        Message frames = codec.serialize(message);
 
         //  If we're sending to a ROUTER, we add the address first
         if (socket.getZMQSocket().getType() == ZMQ.ROUTER) {
@@ -210,7 +273,7 @@ public class ZreSocket extends ZreCodec implements Closeable {
      * @return true if the message was sent, false otherwise
      */
     public boolean send(JoinMessage message) {
-        Message frames = serialize(message);
+        Message frames = codec.serialize(message);
 
         //  If we're sending to a ROUTER, we add the address first
         if (socket.getZMQSocket().getType() == ZMQ.ROUTER) {
@@ -228,7 +291,7 @@ public class ZreSocket extends ZreCodec implements Closeable {
      * @return true if the message was sent, false otherwise
      */
     public boolean send(LeaveMessage message) {
-        Message frames = serialize(message);
+        Message frames = codec.serialize(message);
 
         //  If we're sending to a ROUTER, we add the address first
         if (socket.getZMQSocket().getType() == ZMQ.ROUTER) {
@@ -246,7 +309,7 @@ public class ZreSocket extends ZreCodec implements Closeable {
      * @return true if the message was sent, false otherwise
      */
     public boolean send(PingMessage message) {
-        Message frames = serialize(message);
+        Message frames = codec.serialize(message);
 
         //  If we're sending to a ROUTER, we add the address first
         if (socket.getZMQSocket().getType() == ZMQ.ROUTER) {
@@ -264,7 +327,7 @@ public class ZreSocket extends ZreCodec implements Closeable {
      * @return true if the message was sent, false otherwise
      */
     public boolean send(PingOkMessage message) {
-        Message frames = serialize(message);
+        Message frames = codec.serialize(message);
 
         //  If we're sending to a ROUTER, we add the address first
         if (socket.getZMQSocket().getType() == ZMQ.ROUTER) {

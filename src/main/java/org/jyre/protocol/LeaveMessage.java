@@ -29,7 +29,7 @@ package org.jyre.protocol;
  * LeaveMessage class.
  */
 public class LeaveMessage {
-    public static final ZreSocket.MessageType MESSAGE_TYPE = ZreSocket.MessageType.LEAVE;
+    public static final ZreCodec.MessageType MESSAGE_TYPE = ZreCodec.MessageType.LEAVE;
 
     protected Integer version;
     protected Integer sequence;

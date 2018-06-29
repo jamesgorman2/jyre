@@ -1,15 +1,11 @@
 package org.jyre.protocol;
 
-import org.junit.Before;
-import org.junit.Test;
-import org.zeromq.api.Context;
-import org.zeromq.api.Message.Frame;
-import org.zeromq.api.Socket;
-import org.zeromq.api.SocketType;
-import org.zeromq.jzmq.ManagedContext;
+import static org.junit.Assert.*;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
+import org.junit.*;
+import org.zeromq.api.*;
+import org.zeromq.api.Message.Frame;
+import org.zeromq.jzmq.*;
 
 /**
  * Test ZreSocket.
@@ -44,7 +40,7 @@ public class ZreSocketTest {
         message.putHeader("Age", 43);
         
         assertTrue(out.send(message));
-        assertEquals(ZreSocket.MessageType.HELLO, in.receive());
+        assertEquals(ZreCodec.MessageType.HELLO, in.receive());
         message = in.getHello();
         assertEquals(message.getSequence(), Integer.valueOf(123));
         assertEquals(message.getEndpoint(), "Life is short but Now lasts for ever");
@@ -71,7 +67,7 @@ public class ZreSocketTest {
         message.setContent(Frame.of("Captcha Diem"));
         
         assertTrue(out.send(message));
-        assertEquals(ZreSocket.MessageType.WHISPER, in.receive());
+        assertEquals(ZreCodec.MessageType.WHISPER, in.receive());
         message = in.getWhisper();
         assertEquals(message.getSequence(), Integer.valueOf(123));
         assertTrue(message.getContent().toString().equals("Captcha Diem"));
@@ -91,7 +87,7 @@ public class ZreSocketTest {
         message.setContent(Frame.of("Captcha Diem"));
         
         assertTrue(out.send(message));
-        assertEquals(ZreSocket.MessageType.SHOUT, in.receive());
+        assertEquals(ZreCodec.MessageType.SHOUT, in.receive());
         message = in.getShout();
         assertEquals(message.getSequence(), Integer.valueOf(123));
         assertEquals(message.getGroup(), "Life is short but Now lasts for ever");
@@ -112,7 +108,7 @@ public class ZreSocketTest {
         message.setStatus(123);
         
         assertTrue(out.send(message));
-        assertEquals(ZreSocket.MessageType.JOIN, in.receive());
+        assertEquals(ZreCodec.MessageType.JOIN, in.receive());
         message = in.getJoin();
         assertEquals(message.getSequence(), Integer.valueOf(123));
         assertEquals(message.getGroup(), "Life is short but Now lasts for ever");
@@ -133,7 +129,7 @@ public class ZreSocketTest {
         message.setStatus(123);
         
         assertTrue(out.send(message));
-        assertEquals(ZreSocket.MessageType.LEAVE, in.receive());
+        assertEquals(ZreCodec.MessageType.LEAVE, in.receive());
         message = in.getLeave();
         assertEquals(message.getSequence(), Integer.valueOf(123));
         assertEquals(message.getGroup(), "Life is short but Now lasts for ever");
@@ -152,7 +148,7 @@ public class ZreSocketTest {
         message.setSequence(123);
         
         assertTrue(out.send(message));
-        assertEquals(ZreSocket.MessageType.PING, in.receive());
+        assertEquals(ZreCodec.MessageType.PING, in.receive());
         message = in.getPing();
         assertEquals(message.getSequence(), Integer.valueOf(123));
         
@@ -169,7 +165,7 @@ public class ZreSocketTest {
         message.setSequence(123);
         
         assertTrue(out.send(message));
-        assertEquals(ZreSocket.MessageType.PING_OK, in.receive());
+        assertEquals(ZreCodec.MessageType.PING_OK, in.receive());
         message = in.getPingOk();
         assertEquals(message.getSequence(), Integer.valueOf(123));
         

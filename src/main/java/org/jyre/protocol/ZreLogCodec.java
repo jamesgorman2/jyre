@@ -1,7 +1,7 @@
 /* ============================================================================
  * ZreLogCodec.java
  *
- * Generated codec class for ZreLogCodec
+ * Generated codec class for ZreLogSocket
  * ----------------------------------------------------------------------------
  * Copyright (c) 1991-2012 iMatix Corporation -- http://www.imatix.com     
  * Copyright other contributors as noted in the AUTHORS file.              
@@ -47,15 +47,17 @@ import org.zeromq.api.Message.FrameBuilder;
  */
 public class ZreLogCodec {
     //  Protocol constants
-    public static final int VERSION           = 1;
-    public static final int LEVEL_ERROR       = 1;
-    public static final int LEVEL_WARNING     = 2;
-    public static final int LEVEL_INFO        = 3;
-    public static final int EVENT_JOIN        = 1;
-    public static final int EVENT_LEAVE       = 2;
-    public static final int EVENT_ENTER       = 3;
-    public static final int EVENT_EXIT        = 4;
-    public static final int EVENT_OTHER       = 5;
+    public interface Constants {
+        int VERSION           = 1;
+        int LEVEL_ERROR       = 1;
+        int LEVEL_WARNING     = 2;
+        int LEVEL_INFO        = 3;
+        int EVENT_JOIN        = 1;
+        int EVENT_LEAVE       = 2;
+        int EVENT_ENTER       = 3;
+        int EVENT_EXIT        = 4;
+        int EVENT_OTHER       = 5;
+    }
 
     //  Enumeration of message types
     public enum MessageType {
@@ -78,7 +80,7 @@ public class ZreLogCodec {
             //  Get and check protocol signature
             int signature = (0xffff) & needle.getShort();
             if (signature != (0xaaa0 | 2)) {
-                return null;         //  Invalid signature
+                return null;             //  Invalid signature
             }
 
             //  Get message id, which is first byte in frame
@@ -137,7 +139,7 @@ public class ZreLogCodec {
         if (message.data != null) {
             builder.putString(message.data);
         } else {
-            builder.putString("");        //  Empty string
+            builder.putString("");       //  Empty string
         }
 
         //  Create multi-frame message

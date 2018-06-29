@@ -1,14 +1,11 @@
 package org.jyre.protocol;
 
-import org.junit.Before;
-import org.junit.Test;
-import org.zeromq.api.Context;
-import org.zeromq.api.Socket;
-import org.zeromq.api.SocketType;
-import org.zeromq.jzmq.ManagedContext;
+import static org.junit.Assert.*;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
+import org.junit.*;
+import org.zeromq.api.*;
+import org.zeromq.api.Message.Frame;
+import org.zeromq.jzmq.*;
 
 /**
  * Test ZreLogSocket.
@@ -41,7 +38,7 @@ public class ZreLogSocketTest {
         message.setData("Life is short but Now lasts for ever");
         
         assertTrue(out.send(message));
-        assertEquals(ZreLogSocket.MessageType.LOG, in.receive());
+        assertEquals(ZreLogCodec.MessageType.LOG, in.receive());
         message = in.getLog();
         assertEquals(message.getLevel(), Integer.valueOf(123));
         assertEquals(message.getEvent(), Integer.valueOf(123));

@@ -18,6 +18,8 @@ import java.util.List;
 import java.util.Map;
 
 class ZrePeer {
+    private static final String FAILED_MESSAGE = "E: Failed to send %s message";
+
     /**
      * Valid peer states.
      */
@@ -46,59 +48,66 @@ class ZrePeer {
     }
 
     public void send(HelloMessage message) {
-        if (state == State.DISCONNECTED) return;
-        assert socket != null;
+        if (state != State.DISCONNECTED) {
+            assert socket != null;
 
-        boolean result = socket.send(message.withSequence(incrementSentSequence()));
-        checkSendResult(result, ZreCodec.MessageType.HELLO);
+            boolean result = socket.send(message.withSequence(incrementSentSequence()));
+            checkSendResult(result, ZreCodec.MessageType.HELLO);
+        }
     }
 
     public void send(JoinMessage message) {
-        if (state == State.DISCONNECTED) return;
-        assert socket != null;
+        if (state != State.DISCONNECTED) {
+            assert socket != null;
 
-        boolean result = socket.send(message.withSequence(incrementSentSequence()));
-        checkSendResult(result, ZreCodec.MessageType.JOIN);
+            boolean result = socket.send(message.withSequence(incrementSentSequence()));
+            checkSendResult(result, ZreCodec.MessageType.JOIN);
+        }
     }
 
     public void send(LeaveMessage message) {
-        if (state == State.DISCONNECTED) return;
-        assert socket != null;
+        if (state != State.DISCONNECTED) {
+            assert socket != null;
 
-        boolean result = socket.send(message.withSequence(incrementSentSequence()));
-        checkSendResult(result, ZreCodec.MessageType.LEAVE);
+            boolean result = socket.send(message.withSequence(incrementSentSequence()));
+            checkSendResult(result, ZreCodec.MessageType.LEAVE);
+        }
     }
 
     public void send(PingMessage message) {
-        if (state == State.DISCONNECTED) return;
-        assert socket != null;
+        if (state != State.DISCONNECTED) {
+            assert socket != null;
 
-        boolean result = socket.send(message.withSequence(incrementSentSequence()));
-        checkSendResult(result, ZreCodec.MessageType.PING);
+            boolean result = socket.send(message.withSequence(incrementSentSequence()));
+            checkSendResult(result, ZreCodec.MessageType.PING);
+        }
     }
 
     public void send(PingOkMessage message) {
-        if (state == State.DISCONNECTED) return;
-        assert socket != null;
+        if (state != State.DISCONNECTED) {
+            assert socket != null;
 
-        boolean result = socket.send(message.withSequence(incrementSentSequence()));
-        checkSendResult(result, ZreCodec.MessageType.PING_OK);
+            boolean result = socket.send(message.withSequence(incrementSentSequence()));
+            checkSendResult(result, ZreCodec.MessageType.PING_OK);
+        }
     }
 
     public void send(ShoutMessage message) {
-        if (state == State.DISCONNECTED) return;
-        assert socket != null;
+        if (state != State.DISCONNECTED) {
+            assert socket != null;
 
-        boolean result = socket.send(message.withSequence(incrementSentSequence()));
-        checkSendResult(result, ZreCodec.MessageType.SHOUT);
+            boolean result = socket.send(message.withSequence(incrementSentSequence()));
+            checkSendResult(result, ZreCodec.MessageType.SHOUT);
+        }
     }
 
     public void send(WhisperMessage message) {
-        if (state == State.DISCONNECTED) return;
-        assert socket != null;
+        if (state != State.DISCONNECTED) {
+            assert socket != null;
 
-        boolean result = socket.send(message.withSequence(incrementSentSequence()));
-        checkSendResult(result, ZreCodec.MessageType.WHISPER);
+            boolean result = socket.send(message.withSequence(incrementSentSequence()));
+            checkSendResult(result, ZreCodec.MessageType.WHISPER);
+        }
     }
 
     /**
@@ -328,9 +337,10 @@ class ZrePeer {
         return sentSequence;
     }
 
-    private void checkSendResult(boolean result, ZreCodec.MessageType messageType) {
+    private void checkSendResult(boolean result, Object... args) {
         if (!result) {
-            System.err.printf("E: Failed to send %s message\n", messageType);
+            System.err.printf(FAILED_MESSAGE, args);
+            System.err.println();
             disconnect();
         }
     }

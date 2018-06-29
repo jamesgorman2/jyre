@@ -72,7 +72,6 @@ public class ZreLogger {
         }
 
         Event(int value) {
-
             this.value = value;
         }
     }

@@ -25,12 +25,10 @@
  */
 package org.jyre.protocol;
 
-import org.zeromq.ZMQ;
 import org.zeromq.api.Message;
 import org.zeromq.api.Message.Frame;
 import org.zeromq.api.Socket;
-
-import java.io.Closeable;
+import org.zeromq.ZMQ;
 
 /**
  * ZreLogSocket class.
@@ -48,10 +46,11 @@ import java.io.Closeable;
  * 
  * @author sriesenberg
  */
-public class ZreLogSocket extends ZreLogCodec implements Closeable {
+public class ZreLogSocket implements ZreLogCodec.Constants, java.io.Closeable {
     //  Structure of our class
-    private Socket socket;        //  Internal socket handle
-    private Frame address;        //  Address of peer if any
+    private Socket socket;               //  Internal socket handle
+    private ZreLogCodec codec;           //  Serialization codec
+    private Frame address;               //  Address of peer if any
 
     /**
      * Create a new ZreLogSocket.
@@ -61,6 +60,7 @@ public class ZreLogSocket extends ZreLogCodec implements Closeable {
     public ZreLogSocket(Socket socket) {
         assert socket != null;
         this.socket = socket;
+        this.codec = new ZreLogCodec();
     }
 
     /**
@@ -103,10 +103,10 @@ public class ZreLogSocket extends ZreLogCodec implements Closeable {
      *
      * @return The MessageType of the received message
      */
-    public MessageType receive() {
+    public ZreLogCodec.MessageType receive() {
         //  Read valid message frame from socket; we loop over any
         //  garbage data we might receive from badly-connected peers
-        MessageType type;
+        ZreLogCodec.MessageType type;
         Message frames;
         do {
             frames = socket.receiveMessage();
@@ -117,10 +117,19 @@ public class ZreLogSocket extends ZreLogCodec implements Closeable {
             }
 
             //  Get and check protocol signature
-            type = deserialize(frames);
+            type = codec.deserialize(frames);
         } while (type == null);          //  Protocol assertion, drop message if malformed or invalid
 
         return type;
+    }
+
+    /**
+     * Get a LOG message from the socket.
+     *
+     * @return The LogMessage last received on this socket
+     */
+    public LogMessage getLog() {
+        return codec.log;
     }
 
     /**
@@ -130,7 +139,7 @@ public class ZreLogSocket extends ZreLogCodec implements Closeable {
      * @return true if the message was sent, false otherwise
      */
     public boolean send(LogMessage message) {
-        Message frames = serialize(message);
+        Message frames = codec.serialize(message);
 
         //  If we're sending to a ROUTER, we add the address first
         if (socket.getZMQSocket().getType() == ZMQ.ROUTER) {

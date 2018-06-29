@@ -7,6 +7,7 @@ import org.jyre.protocol.PingMessage;
 import org.jyre.protocol.PingOkMessage;
 import org.jyre.protocol.ShoutMessage;
 import org.jyre.protocol.WhisperMessage;
+import org.jyre.protocol.ZreCodec;
 import org.jyre.protocol.ZreSocket;
 import org.zeromq.api.Backgroundable;
 import org.zeromq.api.Context;
@@ -539,19 +540,19 @@ class ZreInterfaceAgent implements Backgroundable, ZreConstants {
     private class InboxHandler extends LoopAdapter {
         @Override
         protected void execute(Reactor reactor, Socket socket) {
-            ZreSocket.MessageType messageType = zre.receive();
+            ZreCodec.MessageType messageType = zre.receive();
             if (messageType == null) {
                 return; // Interrupted
             }
 
             String identity = zre.getAddress().toString();
             ZrePeer peer = peers.get(identity);
-            if (messageType == ZreSocket.MessageType.HELLO) {
+            if (messageType == ZreCodec.MessageType.HELLO) {
                 // On HELLO we may create the peer if it's unknown
                 // On other commands the peer must already exist
                 peer = getZrePeer(identity, zre.getHello().getEndpoint());
                 peer.onReady();
-            } else if (messageType == ZreSocket.MessageType.PING_OK) {
+            } else if (messageType == ZreCodec.MessageType.PING_OK) {
                 // On PING-OK we may set the peer from EVASIVE back to READY
                 if (peer != null) {
                     peer.onReady();

@@ -29,7 +29,7 @@ package org.jyre.protocol;
  * PingOkMessage class.
  */
 public class PingOkMessage {
-    public static final ZreSocket.MessageType MESSAGE_TYPE = ZreSocket.MessageType.PING_OK;
+    public static final ZreCodec.MessageType MESSAGE_TYPE = ZreCodec.MessageType.PING_OK;
 
     protected Integer version;
     protected Integer sequence;

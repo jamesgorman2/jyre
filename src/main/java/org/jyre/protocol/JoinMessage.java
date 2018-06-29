@@ -29,7 +29,7 @@ package org.jyre.protocol;
  * JoinMessage class.
  */
 public class JoinMessage {
-    public static final ZreSocket.MessageType MESSAGE_TYPE = ZreSocket.MessageType.JOIN;
+    public static final ZreCodec.MessageType MESSAGE_TYPE = ZreCodec.MessageType.JOIN;
 
     protected Integer version;
     protected Integer sequence;

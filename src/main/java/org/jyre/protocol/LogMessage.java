@@ -29,7 +29,7 @@ package org.jyre.protocol;
  * LogMessage class.
  */
 public class LogMessage {
-    public static final ZreLogSocket.MessageType MESSAGE_TYPE = ZreLogSocket.MessageType.LOG;
+    public static final ZreLogCodec.MessageType MESSAGE_TYPE = ZreLogCodec.MessageType.LOG;
 
     protected Integer level;
     protected Integer event;

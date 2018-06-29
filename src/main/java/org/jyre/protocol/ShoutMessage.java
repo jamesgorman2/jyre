@@ -25,19 +25,16 @@
  */
 package org.jyre.protocol;
 
-import org.zeromq.api.Message;
-import org.zeromq.api.Message.Frame;
-
 /**
  * ShoutMessage class.
  */
 public class ShoutMessage {
-    public static final ZreSocket.MessageType MESSAGE_TYPE = ZreSocket.MessageType.SHOUT;
+    public static final ZreCodec.MessageType MESSAGE_TYPE = ZreCodec.MessageType.SHOUT;
 
     protected Integer version;
     protected Integer sequence;
     protected String group;
-    protected Frame content = Message.EMPTY_FRAME;
+    protected org.zeromq.api.Message.Frame content = org.zeromq.api.Message.EMPTY_FRAME;
 
     /**
      * Get the sequence field.
@@ -102,7 +99,7 @@ public class ShoutMessage {
      * 
      * @return The content field
      */
-    public Frame getContent() {
+    public org.zeromq.api.Message.Frame getContent() {
         return content;
     }
 
@@ -111,7 +108,7 @@ public class ShoutMessage {
      *
      * @param frame The new content frame
      */
-    public void setContent(Frame frame) {
+    public void setContent(org.zeromq.api.Message.Frame frame) {
         this.content = frame;
     }
 
@@ -121,7 +118,7 @@ public class ShoutMessage {
      * @param frame The new content frame
      * @return The ShoutMessage, for method chaining
      */
-    public ShoutMessage withContent(Frame frame) {
+    public ShoutMessage withContent(org.zeromq.api.Message.Frame frame) {
         this.content = frame;
         return this;
     }

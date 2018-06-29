@@ -10,8 +10,8 @@
 .set_defaults()
 .global.ClassName = java_class_name(class.name)
 .global.PackageName = java_package_name(class.package)
-.echo "Generating src/main/java/$(class.package)/$(ClassName)Socket.java..."
 .directory.create("../src/main/java/$(class.package)")
+.echo "Generating src/main/java/$(class.package)/$(ClassName)Socket.java..."
 .output "../src/main/java/$(class.package)/$(ClassName)Socket.java"
 /* ============================================================================
  * $(ClassName)Socket.java
@@ -23,12 +23,8 @@
  */
 package $(PackageName);
 
-import java.util.*;
-import java.io.Closeable;
-
 import org.zeromq.api.Message;
 import org.zeromq.api.Message.Frame;
-import org.zeromq.api.Message.FrameBuilder;
 import org.zeromq.api.Socket;
 import org.zeromq.ZMQ;
 
@@ -75,9 +71,10 @@ import org.zeromq.ZMQ;
  * 
  * @author $(switches.author)
  */
-public class $(ClassName)Socket extends $(ClassName)Codec implements Closeable {
+public class $(ClassName)Socket implements $(ClassName)Codec.Constants, java.io.Closeable {
     //  Structure of our class
     private Socket socket;               //  Internal socket handle
+    private $(ClassName)Codec codec;     //  Serialization codec
     private Frame address;               //  Address of peer if any
 
     /**
@@ -88,6 +85,7 @@ public class $(ClassName)Socket extends $(ClassName)Codec implements Closeable {
     public $(ClassName)Socket(Socket socket) {
         assert socket != null;
         this.socket = socket;
+        this.codec = new $(ClassName)Codec();
     }
 
     /**
@@ -130,10 +128,10 @@ public class $(ClassName)Socket extends $(ClassName)Codec implements Closeable {
      *
      * @return The MessageType of the received message
      */
-    public MessageType receive() {
+    public $(ClassName)Codec.MessageType receive() {
         //  Read valid message frame from socket; we loop over any
         //  garbage data we might receive from badly-connected peers
-        MessageType type;
+        $(ClassName)Codec.MessageType type;
         Message frames;
         do {
             frames = socket.receiveMessage();
@@ -144,11 +142,22 @@ public class $(ClassName)Socket extends $(ClassName)Codec implements Closeable {
             }
 
             //  Get and check protocol signature
-            type = deserialize(frames);
+            type = codec.deserialize(frames);
         } while (type == null);          //  Protocol assertion, drop message if malformed or invalid
 
         return type;
     }
+.for message
+
+    /**
+     * Get a $(message.NAME) message from the socket.
+     *
+     * @return The $(java_class_name(name))Message last received on this socket
+     */
+    public $(java_class_name(name))Message get$(java_class_name(name))() {
+        return codec.$(java_var_name(message.name));
+    }
+.endfor
 .for message
 
     /**
@@ -158,7 +167,7 @@ public class $(ClassName)Socket extends $(ClassName)Codec implements Closeable {
      * @return true if the message was sent, false otherwise
      */
     public boolean send($(java_class_name(name))Message message) {
-        Message frames = serialize(message);
+        Message frames = codec.serialize(message);
 
         //  If we're sending to a ROUTER, we add the address first
         if (socket.getZMQSocket().getType() == ZMQ.ROUTER) {
@@ -177,14 +186,12 @@ public class $(ClassName)Socket extends $(ClassName)Codec implements Closeable {
 /* ============================================================================
  * $(ClassName)Codec.java
  *
- * Generated codec class for $(ClassName)Codec
+ * Generated codec class for $(ClassName)Socket
  * ----------------------------------------------------------------------------
  * $(string.trim (class->license.):block                                      )
  * ============================================================================
  */
 package $(PackageName);
-
-import java.util.*;
 
 import org.zeromq.api.Message;
 import org.zeromq.api.Message.Frame;
@@ -235,9 +242,11 @@ import org.zeromq.api.Message.FrameBuilder;
  */
 public class $(ClassName)Codec {
     //  Protocol constants
+    public interface Constants {
 .for define
-    public static final int $(DEFINE.NAME:C)  = $(value);
+        int $(DEFINE.NAME:C)  = $(value);
 .endfor
+    }
 
     //  Enumeration of message types
     public enum MessageType {
@@ -465,16 +474,11 @@ public class $(ClassName)Codec {
  */
 package $(PackageName);
 
-import java.util.*;
-
-import org.zeromq.api.*;
-import org.zeromq.api.Message.Frame;
-
 /**
  * $(MessageName)Message class.
  */
 public class $(MessageName)Message {
-    public static final $(ClassName)Socket.MessageType MESSAGE_TYPE = $(ClassName)Socket.MessageType.$(MESSAGE.NAME);
+    public static final $(ClassName)Codec.MessageType MESSAGE_TYPE = $(ClassName)Codec.MessageType.$(MESSAGE.NAME);
 
 .for field
 .    if type = "number"
@@ -494,13 +498,13 @@ public class $(MessageName)Message {
 .    elsif type = "string"
     protected String $(java_var_name(name));
 .    elsif type = "strings"
-    protected List<String> $(java_var_name(name));
+    protected java.util.List<String> $(java_var_name(name));
 .    elsif type = "hash"
-    protected Map<String, String> $(java_var_name(name));
+    protected java.util.Map<String, String> $(java_var_name(name));
 .    elsif type = "frame"
-    protected Frame $(java_var_name(name)) = Message.EMPTY_FRAME;
+    protected org.zeromq.api.Message.Frame $(java_var_name(name)) = org.zeromq.api.Message.EMPTY_FRAME;
 .    elsif type = "msg"
-    protected Message $(java_var_name(name)) = new Message();
+    protected org.zeromq.api.Message $(java_var_name(name)) = new org.zeromq.api.Message();
 .    endif
 .endfor
 .for field where !defined(value)
@@ -657,9 +661,9 @@ public class $(MessageName)Message {
      * 
      * @return The $(java_var_name(name)) strings
      */
-    public List<String> get$(java_class_name(Name))() {
+    public java.util.List<String> get$(java_class_name(Name))() {
         if ($(java_var_name(name)) == null) {
-            $(java_var_name(name)) = new ArrayList<>();
+            $(java_var_name(name)) = new java.util.ArrayList<>();
         }
         return $(java_var_name(name));
     }
@@ -689,7 +693,7 @@ public class $(MessageName)Message {
      * 
      * @param $(java_var_name(name)) The $(java_var_name(name)) collection
      */
-    public void set$(java_class_name(Name))(List<String> $(java_var_name(name))) {
+    public void set$(java_class_name(Name))(java.util.List<String> $(java_var_name(name))) {
         this.$(java_var_name(name)) = $(java_var_name(name));
     }
 
@@ -699,7 +703,7 @@ public class $(MessageName)Message {
      * @param $(java_var_name(name)) The $(java_var_name(name)) collection
      * @return The $(MessageName)Message, for method chaining
      */
-    public $(MessageName)Message with$(java_class_name(Name))(List<String> $(java_var_name(name))) {
+    public $(MessageName)Message with$(java_class_name(Name))(java.util.List<String> $(java_var_name(name))) {
         this.$(java_var_name(name)) = $(java_var_name(name));
         return this;
     }
@@ -710,9 +714,9 @@ public class $(MessageName)Message {
      * 
      * @return The $(java_var_name(name)) hash
      */
-    public Map<String, String> get$(java_class_name(Name))() {
+    public java.util.Map<String, String> get$(java_class_name(Name))() {
         if ($(java_var_name(name)) == null) {
-            $(java_var_name(name)) = new HashMap<>();
+            $(java_var_name(name)) = new java.util.HashMap<>();
         }
         return $(java_var_name(name));
     }
@@ -833,7 +837,7 @@ public class $(MessageName)Message {
      * 
      * @param $(java_var_name(name)) The new $(java_var_name(name)) hash
      */
-    public void set$(java_class_name(Name))(Map<String, String> $(java_var_name(name))) {
+    public void set$(java_class_name(Name))(java.util.Map<String, String> $(java_var_name(name))) {
         this.$(java_var_name(name)) = $(java_var_name(name));
     }
 
@@ -843,7 +847,7 @@ public class $(MessageName)Message {
      * @param $(java_var_name(name)) The new $(java_var_name(name)) hash
      * @return The $(MessageName)Message, for method chaining
      */
-    public $(MessageName)Message with$(java_class_name(Name))(Map<String, String> $(java_var_name(name))) {
+    public $(MessageName)Message with$(java_class_name(Name))(java.util.Map<String, String> $(java_var_name(name))) {
         this.$(java_var_name(name)) = $(java_var_name(name));
         return this;
     }
@@ -854,7 +858,7 @@ public class $(MessageName)Message {
      * 
      * @return The $(java_var_name(name)) field
      */
-    public Frame get$(java_class_name(Name))() {
+    public org.zeromq.api.Message.Frame get$(java_class_name(Name))() {
         return $(java_var_name(name));
     }
 
@@ -863,7 +867,7 @@ public class $(MessageName)Message {
      *
      * @param frame The new $(java_var_name(name)) frame
      */
-    public void set$(java_class_name(Name))(Frame frame) {
+    public void set$(java_class_name(Name))(org.zeromq.api.Message.Frame frame) {
         this.$(java_var_name(name)) = frame;
     }
 
@@ -873,7 +877,7 @@ public class $(MessageName)Message {
      * @param frame The new $(java_var_name(name)) frame
      * @return The $(MessageName)Message, for method chaining
      */
-    public $(MessageName)Message with$(java_class_name(Name))(Frame frame) {
+    public $(MessageName)Message with$(java_class_name(Name))(org.zeromq.api.Message.Frame frame) {
         this.$(java_var_name(name)) = frame;
         return this;
     }
@@ -884,7 +888,7 @@ public class $(MessageName)Message {
      *
      * @return The $(java_var_name(name)) field
      */
-    public Message get$(java_class_name(Name))() {
+    public org.zeromq.api.Message get$(java_class_name(Name))() {
         return $(java_var_name(name));
     }
 
@@ -893,7 +897,7 @@ public class $(MessageName)Message {
      *
      * @param message The new $(java_var_name(name)) message
      */
-    public void set$(java_class_name(Name))(Message message) {
+    public void set$(java_class_name(Name))(org.zeromq.api.Message message) {
         this.$(java_var_name(name)) = message;
     }
 
@@ -903,7 +907,7 @@ public class $(MessageName)Message {
      * @param message The new $(java_var_name(name)) message
      * @return The $(MessageName)Message, for method chaining
      */
-    public $(MessageName)Message with$(java_class_name(Name))(Message message) {
+    public $(MessageName)Message with$(java_class_name(Name))(org.zeromq.api.Message message) {
         this.$(java_var_name(name)) = message;
         return this;
     }
@@ -981,7 +985,7 @@ public class $(ClassName)SocketTest {
 .    endfor
         
         assertTrue(out.send(message));
-        assertEquals($(ClassName)Socket.MessageType.$(MESSAGE.NAME), in.receive());
+        assertEquals($(ClassName)Codec.MessageType.$(MESSAGE.NAME), in.receive());
         message = in.get$(java_class_name(message.name))();
 .    for field where !defined(value)
 .        if type = "number"

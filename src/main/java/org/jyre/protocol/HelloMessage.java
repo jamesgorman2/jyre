@@ -25,24 +25,19 @@
  */
 package org.jyre.protocol;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-
 /**
  * HelloMessage class.
  */
 public class HelloMessage {
-    public static final ZreSocket.MessageType MESSAGE_TYPE = ZreSocket.MessageType.HELLO;
+    public static final ZreCodec.MessageType MESSAGE_TYPE = ZreCodec.MessageType.HELLO;
 
     protected Integer version;
     protected Integer sequence;
     protected String endpoint;
-    protected List<String> groups;
+    protected java.util.List<String> groups;
     protected Integer status;
     protected String name;
-    protected Map<String, String> headers;
+    protected java.util.Map<String, String> headers;
 
     /**
      * Get the sequence field.
@@ -107,9 +102,9 @@ public class HelloMessage {
      * 
      * @return The groups strings
      */
-    public List<String> getGroups() {
+    public java.util.List<String> getGroups() {
         if (groups == null) {
-            groups = new ArrayList<>();
+            groups = new java.util.ArrayList<>();
         }
         return groups;
     }
@@ -139,7 +134,7 @@ public class HelloMessage {
      * 
      * @param groups The groups collection
      */
-    public void setGroups(List<String> groups) {
+    public void setGroups(java.util.List<String> groups) {
         this.groups = groups;
     }
 
@@ -149,7 +144,7 @@ public class HelloMessage {
      * @param groups The groups collection
      * @return The HelloMessage, for method chaining
      */
-    public HelloMessage withGroups(List<String> groups) {
+    public HelloMessage withGroups(java.util.List<String> groups) {
         this.groups = groups;
         return this;
     }
@@ -217,9 +212,9 @@ public class HelloMessage {
      * 
      * @return The headers hash
      */
-    public Map<String, String> getHeaders() {
+    public java.util.Map<String, String> getHeaders() {
         if (headers == null) {
-            headers = new HashMap<>();
+            headers = new java.util.HashMap<>();
         }
         return headers;
     }
@@ -340,7 +335,7 @@ public class HelloMessage {
      * 
      * @param headers The new headers hash
      */
-    public void setHeaders(Map<String, String> headers) {
+    public void setHeaders(java.util.Map<String, String> headers) {
         this.headers = headers;
     }
 
@@ -350,7 +345,7 @@ public class HelloMessage {
      * @param headers The new headers hash
      * @return The HelloMessage, for method chaining
      */
-    public HelloMessage withHeaders(Map<String, String> headers) {
+    public HelloMessage withHeaders(java.util.Map<String, String> headers) {
         this.headers = headers;
         return this;
     }
