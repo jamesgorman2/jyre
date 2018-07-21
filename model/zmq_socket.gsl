@@ -23,10 +23,11 @@
  */
 package $(PackageName);
 
+import org.zeromq.ZMQ;
 import org.zeromq.api.Message;
 import org.zeromq.api.Message.Frame;
+import org.zeromq.api.MessageFlag;
 import org.zeromq.api.Socket;
-import org.zeromq.ZMQ;
 
 /**
  * $(ClassName)Socket class.
@@ -116,6 +117,15 @@ public class $(ClassName)Socket implements $(ClassName)Codec.Constants, java.io.
     }
 
     /**
+     * Get the internal socket.
+     *
+     * @return The internal socket
+     */
+    public $(ClassName)Codec getCodec() {
+        return codec;
+    }
+
+    /**
      * Destroy the $(ClassName)Socket.
      */
     @Override
@@ -129,12 +139,22 @@ public class $(ClassName)Socket implements $(ClassName)Codec.Constants, java.io.
      * @return The MessageType of the received message
      */
     public $(ClassName)Codec.MessageType receive() {
+        return receive(MessageFlag.NONE);
+    }
+
+    /**
+     * Receive a message on the socket.
+     *
+     * @param flag Flag controlling behavior of the receive operation
+     * @return The MessageType of the received message, or null if no message received
+     */
+    public $(ClassName)Codec.MessageType receive(MessageFlag flag) {
         //  Read valid message frame from socket; we loop over any
         //  garbage data we might receive from badly-connected peers
         $(ClassName)Codec.MessageType type;
         Message frames;
         do {
-            frames = socket.receiveMessage();
+            frames = socket.receiveMessage(flag);
 
             //  If we're reading from a ROUTER socket, get address
             if (socket.getZMQSocket().getType() == ZMQ.ROUTER) {
@@ -143,7 +163,7 @@ public class $(ClassName)Socket implements $(ClassName)Codec.Constants, java.io.
 
             //  Get and check protocol signature
             type = codec.deserialize(frames);
-        } while (type == null);          //  Protocol assertion, drop message if malformed or invalid
+        } while (type == null && flag == MessageFlag.NONE);          //  Protocol assertion, drop message if malformed or invalid
 
         return type;
     }
@@ -368,7 +388,20 @@ public class $(ClassName)Codec {
      * @return The $(java_class_name(name))Message last received on this socket
      */
     public $(java_class_name(name))Message get$(java_class_name(name))() {
+        if ($(java_var_name(message.name)) != null) {
+            $(java_var_name(message.name)) = new $(java_class_name(message.name))Message();
+        }
+
         return $(java_var_name(message.name));
+    }
+
+    /**
+     * Set a $(message.NAME) message.
+     *
+     * @param message The $(java_class_name(name))Message
+     */
+    public void set$(java_class_name(name))($(java_class_name(name))Message message) {
+        this.$(java_var_name(message.name)) = message;
     }
 .endfor
 .for message

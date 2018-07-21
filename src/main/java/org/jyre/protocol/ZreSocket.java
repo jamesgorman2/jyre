@@ -25,10 +25,11 @@
  */
 package org.jyre.protocol;
 
+import org.zeromq.ZMQ;
 import org.zeromq.api.Message;
 import org.zeromq.api.Message.Frame;
+import org.zeromq.api.MessageFlag;
 import org.zeromq.api.Socket;
-import org.zeromq.ZMQ;
 
 /**
  * ZreSocket class.
@@ -117,6 +118,15 @@ public class ZreSocket implements ZreCodec.Constants, java.io.Closeable {
     }
 
     /**
+     * Get the internal socket.
+     *
+     * @return The internal socket
+     */
+    public ZreCodec getCodec() {
+        return codec;
+    }
+
+    /**
      * Destroy the ZreSocket.
      */
     @Override
@@ -130,12 +140,22 @@ public class ZreSocket implements ZreCodec.Constants, java.io.Closeable {
      * @return The MessageType of the received message
      */
     public ZreCodec.MessageType receive() {
+        return receive(MessageFlag.NONE);
+    }
+
+    /**
+     * Receive a message on the socket.
+     *
+     * @param flag Flag controlling behavior of the receive operation
+     * @return The MessageType of the received message, or null if no message received
+     */
+    public ZreCodec.MessageType receive(MessageFlag flag) {
         //  Read valid message frame from socket; we loop over any
         //  garbage data we might receive from badly-connected peers
         ZreCodec.MessageType type;
         Message frames;
         do {
-            frames = socket.receiveMessage();
+            frames = socket.receiveMessage(flag);
 
             //  If we're reading from a ROUTER socket, get address
             if (socket.getZMQSocket().getType() == ZMQ.ROUTER) {
@@ -144,7 +164,7 @@ public class ZreSocket implements ZreCodec.Constants, java.io.Closeable {
 
             //  Get and check protocol signature
             type = codec.deserialize(frames);
-        } while (type == null);          //  Protocol assertion, drop message if malformed or invalid
+        } while (type == null && flag == MessageFlag.NONE);          //  Protocol assertion, drop message if malformed or invalid
 
         return type;
     }

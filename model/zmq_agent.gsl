@@ -70,7 +70,7 @@ endfor
 .macro output_case_body()
 .       for action
 .           if name = "send"
-                        zre.whisper(zreEvent.getPeer(), codec.serialize($(java_var_name(action.message))Message));
+                        zre.whisper(zreEvent.getPeer(), codec.serialize($(java_var_name(action.message.name))Message));
 .           elsif name = "stop"
                         reactor.cancel(this);
 .           else
@@ -133,7 +133,7 @@ public class $(ClassName)Agent extends LoopAdapter {
     private Event next;
 
 .for proto.message
-    private $(java_class_name(message))Message $(java_var_name(message))Message;
+    private $(java_class_name(message.name))Message $(java_var_name(message.name))Message;
 .endfor
 
     public $(ClassName)Agent(ZreInterface zre, Handler handler) {

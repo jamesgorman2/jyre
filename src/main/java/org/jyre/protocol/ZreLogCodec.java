@@ -116,7 +116,20 @@ public class ZreLogCodec {
      * @return The LogMessage last received on this socket
      */
     public LogMessage getLog() {
+        if (log != null) {
+            log = new LogMessage();
+        }
+
         return log;
+    }
+
+    /**
+     * Set a LOG message.
+     *
+     * @param message The LogMessage
+     */
+    public void setLog(LogMessage message) {
+        this.log = message;
     }
 
     /**

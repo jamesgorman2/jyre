@@ -220,7 +220,20 @@ public class ZreCodec {
      * @return The HelloMessage last received on this socket
      */
     public HelloMessage getHello() {
+        if (hello != null) {
+            hello = new HelloMessage();
+        }
+
         return hello;
+    }
+
+    /**
+     * Set a HELLO message.
+     *
+     * @param message The HelloMessage
+     */
+    public void setHello(HelloMessage message) {
+        this.hello = message;
     }
 
     /**
@@ -229,7 +242,20 @@ public class ZreCodec {
      * @return The WhisperMessage last received on this socket
      */
     public WhisperMessage getWhisper() {
+        if (whisper != null) {
+            whisper = new WhisperMessage();
+        }
+
         return whisper;
+    }
+
+    /**
+     * Set a WHISPER message.
+     *
+     * @param message The WhisperMessage
+     */
+    public void setWhisper(WhisperMessage message) {
+        this.whisper = message;
     }
 
     /**
@@ -238,7 +264,20 @@ public class ZreCodec {
      * @return The ShoutMessage last received on this socket
      */
     public ShoutMessage getShout() {
+        if (shout != null) {
+            shout = new ShoutMessage();
+        }
+
         return shout;
+    }
+
+    /**
+     * Set a SHOUT message.
+     *
+     * @param message The ShoutMessage
+     */
+    public void setShout(ShoutMessage message) {
+        this.shout = message;
     }
 
     /**
@@ -247,7 +286,20 @@ public class ZreCodec {
      * @return The JoinMessage last received on this socket
      */
     public JoinMessage getJoin() {
+        if (join != null) {
+            join = new JoinMessage();
+        }
+
         return join;
+    }
+
+    /**
+     * Set a JOIN message.
+     *
+     * @param message The JoinMessage
+     */
+    public void setJoin(JoinMessage message) {
+        this.join = message;
     }
 
     /**
@@ -256,7 +308,20 @@ public class ZreCodec {
      * @return The LeaveMessage last received on this socket
      */
     public LeaveMessage getLeave() {
+        if (leave != null) {
+            leave = new LeaveMessage();
+        }
+
         return leave;
+    }
+
+    /**
+     * Set a LEAVE message.
+     *
+     * @param message The LeaveMessage
+     */
+    public void setLeave(LeaveMessage message) {
+        this.leave = message;
     }
 
     /**
@@ -265,7 +330,20 @@ public class ZreCodec {
      * @return The PingMessage last received on this socket
      */
     public PingMessage getPing() {
+        if (ping != null) {
+            ping = new PingMessage();
+        }
+
         return ping;
+    }
+
+    /**
+     * Set a PING message.
+     *
+     * @param message The PingMessage
+     */
+    public void setPing(PingMessage message) {
+        this.ping = message;
     }
 
     /**
@@ -274,7 +352,20 @@ public class ZreCodec {
      * @return The PingOkMessage last received on this socket
      */
     public PingOkMessage getPingOk() {
+        if (pingOk != null) {
+            pingOk = new PingOkMessage();
+        }
+
         return pingOk;
+    }
+
+    /**
+     * Set a PING_OK message.
+     *
+     * @param message The PingOkMessage
+     */
+    public void setPingOk(PingOkMessage message) {
+        this.pingOk = message;
     }
 
     /**

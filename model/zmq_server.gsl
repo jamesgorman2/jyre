@@ -133,7 +133,7 @@ public class $(ClassName)Server extends LoopAdapter {
     private long timeout;
 
 .for proto.message
-    private $(java_class_name(message))Message $(java_var_name(message))Message;
+    private $(java_class_name(message.name))Message $(java_var_name(message.name))Message;
 .endfor
 
     public $(ClassName)Server(Socket pipe, int port, Handler handler) {

@@ -114,15 +114,15 @@ function resolve_includes ()
 endfunction
 
 function java_class_name(name)
-    neatName = "$(Name:c)"
-    return "$(string.replace(neatName, '_'))"
+    my.neat_name = "$(Name:c)"
+    return "$(string.replace(my.neat_name, '_'))"
 endfunction
 
 function java_var_name(name)
-    neatName = "$(java_class_name(Name))"
-    first_char = string.substr(neatName, 0, 0)
+    my.neat_name = "$(java_class_name(Name))"
+    my.first_char = string.substr(my.neat_name, 0, 0)
     
-    return "$(first_char)" + string.substr(neatName, 1, string.length(neatName))
+    return "$(my.first_char)" + string.substr(my.neat_name, 1, string.length(my.neat_name))
 endfunction
 
 function java_package_name(package)
@@ -130,13 +130,13 @@ function java_package_name(package)
 endfunction
 
 function stem_s(name)
-    retval = "$(Name)"
-    last_char = string.substr(retval, string.length(retval)-1, string.length(retval))
-    if last_char = "s"
-        retval = string.substr(retval, 0, string.length(retval)-2)
+    my.retval = "$(Name)"
+    my.last_char = string.substr(my.retval, string.length(my.retval)-1, string.length(my.retval))
+    if my.last_char = "s"
+        my.retval = string.substr(my.retval, 0, string.length(my.retval)-2)
     endif
     
-    return retval
+    return my.retval
 endfunction
 
 function java_protocol_class()
