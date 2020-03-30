@@ -1,5 +1,10 @@
 # Zyre implementation in Java
 
+Builds with JeroMQ as `org.zeromq:zyre` by default.
+
+
+**OLD DOCS*
+
 ## How to use in your project
 
 Add the following to your Maven project's `pom.xml`:
