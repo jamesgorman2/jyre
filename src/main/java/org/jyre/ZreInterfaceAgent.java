@@ -24,6 +24,8 @@ import org.zeromq.jzmq.UdpSocket;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.channels.SelectableChannel;
+import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
@@ -179,7 +181,7 @@ class ZreInterfaceAgent implements Backgroundable, ZreConstants {
     }
 
     private ZrePeer getZrePeer(String identity, String endpoint) {
-        ZrePeer peer = peers.get(identity);
+        ZrePeer peer = getPeer(identity);
         if (peer == null) {
             peer = new ZrePeer(context, identity);
 
@@ -190,7 +192,7 @@ class ZreInterfaceAgent implements Backgroundable, ZreConstants {
                 }
             }
 
-            peers.put(identity, peer);
+            putPeer(identity, peer);
             peer.connect(this.identity, endpoint);
 
             // Handshake discovery by sending HELLO as first message
@@ -202,10 +204,18 @@ class ZreInterfaceAgent implements Backgroundable, ZreConstants {
                 .withHeaders(headers);
             peer.send(hello);
 
-            logger.info(ZreLogger.Event.ENTER, peer.getIdentity(), "Peer %s connected to %s", identity, this.identity);
+            logger.info(ZreLogger.Event.ENTER, peer.getIdentity(), "Peer %s connected to %s", peer.getIdentity(), this.identity);
         }
 
         return peer;
+    }
+
+    private ZrePeer putPeer(String identity, ZrePeer peer) {
+        return peers.put(identity, peer);
+    }
+
+    private ZrePeer getPeer(String identity) {
+        return peers.get(identity);
     }
 
     private void removeZrePeer(ZrePeer peer) {
@@ -396,7 +406,7 @@ class ZreInterfaceAgent implements Backgroundable, ZreConstants {
 
         private void onPeerName(Message message) {
             String identity = message.popString();
-            ZrePeer peer = peers.get(identity);
+            ZrePeer peer = getPeer(identity);
             if (peer != null) {
                 pipe.send(new Message(peer.getName()));
             } else {
@@ -406,7 +416,7 @@ class ZreInterfaceAgent implements Backgroundable, ZreConstants {
 
         private void onPeerEndpoint(Message message) {
             String identity = message.popString();
-            ZrePeer peer = peers.get(identity);
+            ZrePeer peer = getPeer(identity);
             if (peer != null) {
                 pipe.send(new Message(peer.getEndpoint()));
             } else {
@@ -417,7 +427,7 @@ class ZreInterfaceAgent implements Backgroundable, ZreConstants {
         private void onPeerHeader(Message message) {
             String identity = message.popString();
             String key = message.popString();
-            ZrePeer peer = peers.get(identity);
+            ZrePeer peer = getPeer(identity);
             if (peer != null) {
                 pipe.send(new Message(peer.getHeader(key, "")));
             } else {
@@ -427,7 +437,7 @@ class ZreInterfaceAgent implements Backgroundable, ZreConstants {
 
         private void onPeerHeaders(Message message) {
             String identity = message.popString();
-            ZrePeer peer = peers.get(identity);
+            ZrePeer peer = getPeer(identity);
             if (peer != null) {
                 pipe.send(new Message().addMap(peer.getHeaders()));
             } else {
@@ -437,7 +447,7 @@ class ZreInterfaceAgent implements Backgroundable, ZreConstants {
 
         private void onPeerGroups(Message message) {
             String identity = message.popString();
-            ZrePeer peer = peers.get(identity);
+            ZrePeer peer = getPeer(identity);
             if (peer != null) {
                 pipe.send(new Message().addStrings(peer.getGroups()));
             } else {
@@ -501,7 +511,7 @@ class ZreInterfaceAgent implements Backgroundable, ZreConstants {
         private void onWhisper(Message message) {
             // Get peer to send message to
             String identity = message.popString();
-            ZrePeer peer = peers.get(identity);
+            ZrePeer peer = getPeer(identity);
 
             // Send frame on out to peer's mailbox, drop message
             // if peer doesn't exist (may have been destroyed)
@@ -545,8 +555,9 @@ class ZreInterfaceAgent implements Backgroundable, ZreConstants {
                 return; // Interrupted
             }
 
-            String identity = zre.getAddress().toString();
-            ZrePeer peer = peers.get(identity);
+            String identity = org.zyre.ZreInterface.normaliseIdentity(zre.getAddress().getData());
+
+            ZrePeer peer = getPeer(identity);
             if (messageType == ZreCodec.MessageType.HELLO) {
                 // On HELLO we may create the peer if it's unknown
                 // On other commands the peer must already exist

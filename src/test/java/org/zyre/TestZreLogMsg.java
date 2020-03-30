@@ -3,33 +3,31 @@
 
 package org.zyre;
 
-import static org.junit.Assert.*;
 import org.junit.Test;
-import org.zeromq.ZMQ;
-import org.zeromq.ZMQ.Socket;
-import org.zeromq.ZFrame;
+import org.zeromq.SocketType;
 import org.zeromq.ZContext;
+import org.zeromq.ZMQ.Socket;
+
+import static org.junit.Assert.assertEquals;
 
 public class TestZreLogMsg
 {
     @Test
     public void testZreLogMsg ()
     {
-        System.out.printf (" * zre_log_msg: ");
+        System.out.print(" * zre_log_msg: ");
 
         //  Simple create/destroy test
         ZreLogMsg self = new ZreLogMsg (0);
-        assert (self != null);
         self.destroy ();
 
         //  Create pair of sockets we can send through
         ZContext ctx = new ZContext ();
-        assert (ctx != null);
 
-        Socket output = ctx.createSocket (ZMQ.DEALER);
+        Socket output = ctx.createSocket (SocketType.DEALER);
         assert (output != null);
         output.bind ("inproc://selftest");
-        Socket input = ctx.createSocket (ZMQ.ROUTER);
+        Socket input = ctx.createSocket (SocketType.ROUTER);
         assert (input != null);
         input.connect ("inproc://selftest");
         
@@ -55,6 +53,6 @@ public class TestZreLogMsg
         self.destroy ();
 
         ctx.destroy ();
-        System.out.printf ("OK\n");
+        System.out.print ("OK\n");
     }
 }

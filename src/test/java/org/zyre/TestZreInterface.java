@@ -40,7 +40,8 @@ public class TestZreInterface
         public void run ()
         {
             ZreInterface inf = new ZreInterface ();
-            
+
+            label:
             while (true) {
                 ZMsg incoming = inf.recv ();
                 
@@ -49,56 +50,59 @@ public class TestZreInterface
                 
                 //  If new peer, say hello to it and wait for it to answer us
                 String event = incoming.popString ();
-                if (event.equals ("ENTER")) {
-                    String identity = incoming.popString ();
-                    System.out.printf ("I: [%s] peer entered\n", identity);
-                }
-                else
-                if (event.equals ("WHISPER")) {
-                    String peer = incoming.popString ();
-                    String msg = incoming.popString ();
-                    
-                    if (msg.equals ("HELLO")) {
-                        ZMsg outgoing = new ZMsg ();
-                        outgoing.add (peer);
-                        outgoing.add ("WORLD");
-                        inf.whisper (outgoing);
-                    }
-                    
-                    if (msg.equals ("QUIT")) {
+                switch (event) {
+                    case "ENTER": {
+                        String identity = incoming.popString();
+                        System.out.printf("I: [%s] peer entered\n", identity);
                         break;
                     }
-                }
-                else 
-                if (event.equals ("SHOUT")) {
-                    String identity = incoming.popString ();
-                    incoming.popString ();
-                    String msg = incoming.popString ();
-                    
-                    if (msg.equals ("HELLO")) {
-	                    ZMsg outgoing = new ZMsg ();
-	                    outgoing.add (identity);
-	                    outgoing.add ("WORLD");
-	                    inf.whisper (outgoing);
-                    }
-                    
-                    if (msg.equals ("QUIT")) {
+                    case "WHISPER": {
+                        String peer = incoming.popString();
+                        String msg = incoming.popString();
+
+                        if (msg.equals("HELLO")) {
+                            ZMsg outgoing = new ZMsg();
+                            outgoing.add(peer);
+                            outgoing.add("WORLD");
+                            inf.whisper(outgoing);
+                        }
+
+                        if (msg.equals("QUIT")) {
+                            break label;
+                        }
                         break;
                     }
-                }
-                else
-                if (event.equals ("JOIN")) {
-                    incoming.popString ();
-                    String group = incoming.popString ();
-                    
-                    inf.join (group);
-                }
-                else
-                if (event.equals ("LEAVE")) {
-                    incoming.popString ();
-                    String group = incoming.popString ();
-                    
-                    inf.leave (group);
+                    case "SHOUT": {
+                        String identity = incoming.popString();
+                        incoming.popString();
+                        String msg = incoming.popString();
+
+                        if (msg.equals("HELLO")) {
+                            ZMsg outgoing = new ZMsg();
+                            outgoing.add(identity);
+                            outgoing.add("WORLD");
+                            inf.whisper(outgoing);
+                        }
+
+                        if (msg.equals("QUIT")) {
+                            break label;
+                        }
+                        break;
+                    }
+                    case "JOIN": {
+                        incoming.popString();
+                        String group = incoming.popString();
+
+                        inf.join(group);
+                        break;
+                    }
+                    case "LEAVE": {
+                        incoming.popString();
+                        String group = incoming.popString();
+
+                        inf.leave(group);
+                        break;
+                    }
                 }
             }
             inf.destroy ();

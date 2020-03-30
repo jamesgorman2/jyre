@@ -93,10 +93,7 @@ public class TestZreUdp
     public void 
     testBroadcast () throws Exception
     {
-        ZContext ctx = new ZContext ();
-        ctx.setContext (ZMQ.context (1));
-        
-        assert (ctx != null);
+        ZContext ctx = new ZContext (1);
 
         UdpAgent udp1 = new UdpAgent (ctx);
         udp1.start ();

@@ -11,13 +11,12 @@ import org.zeromq.jzmq.*;
  * Test ZreSocket.
  */
 public class ZreSocketTest {
-    private Context context;
     private Socket dealer;
     private Socket router;
     
     @Before
     public void setUp() {
-        context = new ManagedContext();
+        Context context = new ManagedContext();
         dealer = context.buildSocket(SocketType.DEALER)
             .bind("inproc://selftest");
         router = context.buildSocket(SocketType.ROUTER)
@@ -70,7 +69,7 @@ public class ZreSocketTest {
         assertEquals(ZreCodec.MessageType.WHISPER, in.receive());
         message = in.getWhisper();
         assertEquals(message.getSequence(), Integer.valueOf(123));
-        assertTrue(message.getContent().toString().equals("Captcha Diem"));
+        assertEquals("Captcha Diem", message.getContent().toString());
         
         out.close();
         in.close();
@@ -91,7 +90,7 @@ public class ZreSocketTest {
         message = in.getShout();
         assertEquals(message.getSequence(), Integer.valueOf(123));
         assertEquals(message.getGroup(), "Life is short but Now lasts for ever");
-        assertTrue(message.getContent().toString().equals("Captcha Diem"));
+        assertEquals("Captcha Diem", message.getContent().toString());
         
         out.close();
         in.close();

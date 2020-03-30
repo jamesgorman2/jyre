@@ -28,6 +28,7 @@ package org.zyre;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
+import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
@@ -50,8 +51,8 @@ public class ZreInterface
 
     //  Constants, to be configured/reviewed
     public static final int PING_INTERVAL   = 1000;   //  Once per second
-    public static final int PEER_EVASIVE    = 5000;   //  Five seconds' silence is evasive
-    public static final int PEER_EXPIRED   = 10000;   //  Ten seconds' silence is expired
+    public static final int PEER_EVASIVE    = 10000;   //  Five seconds' silence is evasive
+    public static final int PEER_EXPIRED   = 20000;   //  Ten seconds' silence is expired
     
     private ZContext ctx;       //  Our context wrapper
     private Socket pipe;        //  Pipe through to agent
@@ -64,7 +65,29 @@ public class ZreInterface
         ctx = new ZContext ();
         pipe = ZThread.fork (ctx, new ZreInterfaceAgent ());
     }
-    
+
+    private static final byte[] HEX_ARRAY = "0123456789ABCDEF".getBytes();
+    public static String normaliseIdentity(byte[] address) {
+        if (address.length == 32) {
+            return new String (address);
+        }
+        if (address.length == 16 || address.length == 17){
+            int offset = address.length == 16 ? 0 : 1;
+            byte[] hexChars = new byte[32];
+            for (int j = 0; j < 16; j++) {
+                int v = address[j + offset] & 0xFF;
+                hexChars[j * 2] = HEX_ARRAY[v >>> 4];
+                hexChars[j * 2 + 1] = HEX_ARRAY[v & 0x0F];
+            }
+
+            System.out.println(" ZREInterface - Unusual identity " + new String(address) + " (" + address.length + ") -> " +
+              new String(hexChars, StandardCharsets.UTF_8) + " (" + hexChars.length + ")");
+
+            return new String(hexChars, StandardCharsets.UTF_8);
+        }
+        throw new RuntimeException("Unexpected identity frame of length " + address.length + " : " + new String(address));
+    }
+
     //  ---------------------------------------------------------------------
     //  Destructor
     public void destroy ()
@@ -423,7 +446,7 @@ public class ZreInterface
             request.destroy ();
             return true;
         }
-        
+
         //  Here we handle messages coming from other peers
         protected boolean recvFromPeer ()
         {
@@ -432,7 +455,7 @@ public class ZreInterface
             if (msg == null)
                 return false;               //  Interrupted
 
-            String identity = new String (msg.address ().getData ());
+            String identity = normaliseIdentity (msg.address ().getData ());
             
             //  On HELLO we may create the peer if it's unknown
             //  On other commands the peer must already exist

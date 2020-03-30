@@ -4,7 +4,7 @@ import org.junit.Test;
 import org.zeromq.api.Message;
 
 import static org.hamcrest.CoreMatchers.is;
-import static org.junit.Assert.assertThat;
+import static org.hamcrest.MatcherAssert.assertThat;
 
 public class ZreInterfaceTest {
     private static class ZrePing extends Thread {
